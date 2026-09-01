@@ -1,8 +1,16 @@
 HELP.md
 target/
+.idea/
+*.iml
+.env
+*.pem
+
+
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
+
+
 
 ### STS ###
 .apt_generated
