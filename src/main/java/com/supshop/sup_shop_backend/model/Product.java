@@ -60,4 +60,30 @@ public class Product {
         updatedAt = LocalDateTime.now();
     }
 
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+
+    public BigDecimal getPrice() { return price; }
+    public void setPrice(BigDecimal price) { this.price = price; }
+
+    public Integer getQuantity() { return quantity; }
+    public void setQuantity(Integer quantity) { this.quantity = quantity; }
+
+    public Brand getBrand() { return brand; }
+    public void setBrand(Brand brand) { this.brand = brand; }
+
+    public Category getCategory() { return category; }
+    public void setCategory(Category category) { this.category = category; }
+
+    public BoardType getBoardType() { return boardType; }
+    public void setBoardType(BoardType boardType) { this.boardType = boardType; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 }
