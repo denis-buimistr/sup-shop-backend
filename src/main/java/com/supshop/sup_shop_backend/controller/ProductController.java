@@ -4,6 +4,8 @@ import com.supshop.sup_shop_backend.dto.ProductRequest;
 import com.supshop.sup_shop_backend.dto.ProductResponse;
 import com.supshop.sup_shop_backend.service.ProductService;
 import jakarta.persistence.Id;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,8 +21,12 @@ public class ProductController {
     }
 
     @GetMapping
-    public List<ProductResponse> getAll() {
-        return productService.findAll();
+    public Page<ProductResponse> getAll(
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Long brandId,
+            @RequestParam(required = false) String boardType,
+            Pageable pageable) {
+        return productService.findAll(categoryId, brandId, boardType, pageable);
     }
 
     @GetMapping("/{id}")
