@@ -1,0 +1,21 @@
+CREATE TABLE roles (
+    id BIGSERIAL PRIMARY KEY ,
+    name VARCHAR(50) NOT NULL UNIQUE
+);
+
+CREATE TABLE USERS(
+    id BIGSERIAL PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(250) NOT NULL UNIQUE,
+    password_hash VARCHAR(250) NOT NULL,
+    full_name VARCHAR(150),
+    enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT now()
+);
+
+CREATE TABLE user_roles(
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE ,
+    role_id BIGINT NOT NULL REFERENCES roles(id) ON DELETE CASCADE
+);
+
+INSERT INTO roles (name) values ('ROLE_USER') , ('ROLE_ADMIN');

@@ -1,4 +1,4 @@
-# SUP Shop — контекст проекта для Claude Code
+па# SUP Shop — контекст проекта для Claude Code
 
 ## Что это за проект
 
