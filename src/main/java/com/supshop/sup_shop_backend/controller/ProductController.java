@@ -4,6 +4,7 @@ import com.supshop.sup_shop_backend.dto.ProductRequest;
 import com.supshop.sup_shop_backend.dto.ProductResponse;
 import com.supshop.sup_shop_backend.service.ProductService;
 import jakarta.persistence.Id;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
@@ -35,12 +36,12 @@ public class ProductController {
     }
 
     @PostMapping
-    public ProductResponse create(@RequestBody ProductRequest request) {
+    public ProductResponse create(@Valid @RequestBody ProductRequest request) {
         return productService.create(request);
     }
 
     @PutMapping("/{id}")
-    public ProductResponse update(@PathVariable Long id, @RequestBody ProductRequest request) {
+    public ProductResponse update(@PathVariable Long id, @Valid @RequestBody ProductRequest request) {
         return productService.update(id, request);
     }
     @DeleteMapping("/{id}")

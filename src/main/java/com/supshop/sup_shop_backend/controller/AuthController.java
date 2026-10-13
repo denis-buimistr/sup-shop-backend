@@ -4,6 +4,7 @@ import com.supshop.sup_shop_backend.dto.auth.AuthResponse;
 import com.supshop.sup_shop_backend.dto.auth.LoginRequest;
 import com.supshop.sup_shop_backend.dto.auth.RegisterRequest;
 import com.supshop.sup_shop_backend.service.AuthService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,13 +23,13 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register (
-            @RequestBody RegisterRequest request) {
+           @Valid @RequestBody RegisterRequest request) {
         return ResponseEntity.ok(authService.register(request));
     }
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(
-            @RequestBody LoginRequest request) {
+            @Valid  @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
     }
 
