@@ -1,17 +1,19 @@
 package com.supshop.sup_shop_backend.service;
 
+import com.supshop.sup_shop_backend.dto.ProductAttributeResponse;
+import com.supshop.sup_shop_backend.dto.ProductImageResponse;
 import com.supshop.sup_shop_backend.model.Product;
 import com.supshop.sup_shop_backend.model.Brand;
 import com.supshop.sup_shop_backend.model.Category;
 import com.supshop.sup_shop_backend.dto.ProductRequest;
 import com.supshop.sup_shop_backend.dto.ProductResponse;
-import com.supshop.sup_shop_backend.repository.BrandRepository;
-import com.supshop.sup_shop_backend.repository.CategoryRepository;
-import com.supshop.sup_shop_backend.repository.ProductRepository;
+import com.supshop.sup_shop_backend.repository.*;
 import org.springframework.stereotype.Service;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 
 @Service
@@ -19,12 +21,22 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final BrandRepository brandRepository;
+    private final ProductImageRepository productImageRepository;
+    private final ProductAttributeRepository productAttributeRepository;
 
-    public ProductService(ProductRepository productRepository, CategoryRepository categoryRepository, BrandRepository brandRepository) {
+    public ProductService(ProductRepository productRepository,
+                          CategoryRepository categoryRepository,
+                          BrandRepository brandRepository,
+                          ProductImageRepository productImageRepository,
+                          ProductAttributeRepository productAttributeRepository) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.brandRepository = brandRepository;
+        this.productImageRepository = productImageRepository;
+        this.productAttributeRepository = productAttributeRepository;
     }
+
+    @Transactional(readOnly = true)
 
     public Page<ProductResponse> findAll(Long categoryId, Long brandId, String boardType, Pageable pageable) {
         Page<Product> page;
@@ -42,7 +54,8 @@ public class ProductService {
         return page.map(this::toResponse);
     }
 
-   public ProductResponse findbyID(Long id) {
+    @Transactional(readOnly = true)
+    public ProductResponse findByID(Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Товар не найден" + id));
         return toResponse(product);
@@ -115,7 +128,25 @@ public class ProductService {
         productRepository.save(product);
    }
 
-   private ProductResponse toResponse(Product p) {
+    private ProductResponse toResponse(Product p) {
+        List<ProductImageResponse> images = productImageRepository
+                .findByProductId(p.getId())
+                .stream()
+                .map(img -> new ProductImageResponse(
+                        img.getId(),
+                        img.getImageUrl(),
+                        img.isPrimary(),
+                        img.getSortOrder()))
+                .toList();
+
+        List<ProductAttributeResponse> attributes = productAttributeRepository
+                .findByProductId(p.getId())
+                .stream()
+                .map(attr -> new ProductAttributeResponse(
+                        attr.getAttributeName(),
+                        attr.getAttributeValue()))
+                .toList();
+
         return new ProductResponse(
                 p.getId(),
                 p.getName(),
@@ -125,8 +156,10 @@ public class ProductService {
                 p.getBrand() != null ? p.getBrand().getName() : null,
                 p.getCategory() != null ? p.getCategory().getName() : null,
                 p.getBoardType() != null ? p.getBoardType().name() : null,
-                p.getStatus()
+                p.getStatus(),
+                images,
+                attributes
         );
-   }
+    }
 
 }

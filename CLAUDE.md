@@ -1,4 +1,4 @@
-па# SUP Shop — контекст проекта для Claude Code
+# SUP Shop — контекст проекта для Claude Code
 
 ## Что это за проект
 
@@ -37,7 +37,8 @@ Boot буквально в процессе создания этого прое
 
 - **Backend**: Java 21 (проект собирается и под Java 25/26, установленные
   локально), Spring Boot 4.1.1, Spring Data JPA, Hibernate 7, Spring
-  Security (ещё не подключён), Maven, PostgreSQL 16, Flyway 12.
+  Security + JWT, Maven, PostgreSQL 16, Flyway 12, AWS SDK v2 (S3) для
+  хранения картинок товаров.
 - **Frontend**: React (ещё не начат).
 - **Инфраструктура (в перспективе)**: Docker, GitHub, Jenkins, AWS
   (RDS + EC2), Nginx, Cloudflare — пока не актуально, сначала весь backend.
@@ -71,24 +72,54 @@ Boot буквально в процессе создания этого прое
   авторизацией/несуществующими ролями — первым делом проверь
   `lsof -nP -iTCP:5432 -sTCP:LISTEN`, не появился ли второй процесс на
   порту.
-- `application.properties` содержит `spring.jpa.hibernate.ddl-auto=validate`
+- `application.yml` содержит `spring.jpa.hibernate.ddl-auto=validate`
   — схему создаёт **только** Flyway через миграции в
   `src/main/resources/db/migration`, Hibernate её не трогает, только
   сверяет соответствие.
 
+## Конфигурация
+
+- Конфиг в YAML: `application.yml` (общее) + профили `application-dev.yml`
+  и `application-prod.yml`. Профиль по умолчанию — `dev`
+  (`spring.profiles.default`).
+- В `dev` JWT-секрет задан прямо в `application-dev.yml`, поэтому локально
+  переменная `JWT_SECRET` не нужна. В `prod` секрет берётся только из
+  `${JWT_SECRET}`.
+- Параметры БД вынесены в `${DB_URL}`, `${DB_USERNAME}`, `${DB_PASSWORD}`;
+  значения по умолчанию указывают на локальный Docker.
+- AWS: `S3Client` использует `DefaultCredentialsProvider`, ключи лежат в
+  `~/.aws/credentials`, а не в конфиге Spring. Без ключей приложение всё
+  равно стартует, падает только реальная загрузка в S3. Bucket
+  `sup-shop-images-denis-2026`, регион `eu-north-1`. На EC2 вместо ключей
+  будет IAM-роль.
+- `app.cors.allowed-origins` объявлено в YAML, но пока не используется:
+  `SecurityConfig` хардкодит `http://localhost:5173`. Подключить перед
+  деплоем.
+- **Грабли**: Maven не удаляет из `target/classes` файлы, удалённые или
+  переименованные в `resources`. После таких изменений запускай с
+  `mvn clean` (в IntelliJ: Build → Rebuild Project), иначе старый конфиг
+  может маскировать ошибки.
+
 ## Текущий прогресс (обновляй этот раздел по ходу работы)
 
-- ✅ Этап 1 (проектирование) — определена структура категорий/брендов под
-  SUP-фокус с разделением inflatable/hardboard досок.
-- ✅ Этап 2 (backend-скелет) — Spring Boot проект создан, `HelloController`
-  работает, Docker + Postgres подняты, git-репозиторий заведён с первого дня.
-- 🔧 Сейчас в процессе: первая сущность `Category` (с self-referencing
-  `parent_id` для дерева категорий) + миграция `V1__create_categories_table.sql`
-  — только что исправили проблему с недостающим `spring-boot-starter-flyway`.
-- ⏭️ Дальше по плану: добавить `Brand`, затем `Product` (с полем `board_type`:
-  INFLATABLE/HARDBOARD), `ProductImage`, `ProductAttribute` — это Этап 3.
+- ✅ Этап 1 (проектирование): структура категорий и брендов под SUP с
+  разделением inflatable/hardboard.
+- ✅ Этап 2 (backend-скелет): Spring Boot, Docker + Postgres, git.
+- ✅ Этап 3 (каталог): `Category` (дерево), `Brand`, `Product` (CRUD,
+  пагинация, фильтры), `ProductImage`, `ProductAttribute`. Миграции V1–V5,
+  тестовые данные в V8.
+- ✅ Auth: Spring Security + JWT, `User`/`Role`, регистрация и логин,
+  профиль пользователя, admin API, Bean Validation, `GlobalExceptionHandler`.
+  Миграция V6.
+- ✅ Корзина и заказы: `Cart`/`CartItem`, `Order`/`OrderItem`, checkout,
+  «мои заказы». Миграция V7.
+- 🔧 Сейчас в процессе: загрузка картинок товаров в AWS S3. Готовы
+  `S3Config` и `S3Service`, переход конфига на YAML с профилями.
+  Эндпоинта для загрузки в `ProductController` пока нет.
+- ⏭️ Дальше: эндпоинт загрузки картинок, затем лёгкие тесты, затем
+  frontend на React.
 
-## Полная предварительная структура БД (согласована с автором, ещё не вся реализована)
+## Полная предварительная структура БД (согласована с автором; всё, кроме `refresh_tokens`, реализовано)
 
 **Auth**: `roles`, `users`, `user_roles`, `refresh_tokens`
 **Каталог**: `brands`, `categories` (дерево через `parent_id`), `products`

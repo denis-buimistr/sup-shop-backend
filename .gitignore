@@ -4,6 +4,7 @@ target/
 *.iml
 .env
 *.pem
+.aws/
 
 
 .mvn/wrapper/maven-wrapper.jar
