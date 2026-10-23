@@ -1,6 +1,7 @@
 package com.supshop.sup_shop_backend.dto;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 public record ProductResponse (
     Long id,
@@ -11,5 +12,7 @@ public record ProductResponse (
     String brandName,
     String categoryName,
     String boardType,
-    String status
+    String status,
+    List<ProductImageResponse> images,
+    List<ProductAttributeResponse> attributes
 ) {}
