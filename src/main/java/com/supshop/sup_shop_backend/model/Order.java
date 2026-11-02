@@ -12,8 +12,19 @@ import java.util.List;
 public class Order {
 
     public enum Status {
-        NEW, PAID, SHIPPED, COMPLETED, CANCELLED
+        NEW, PAID, SHIPPED, COMPLETED, CANCELLED;
+
+        public boolean canChangeTo(Status next) {
+            return switch (this) {
+                case NEW  -> next == PAID || next == CANCELLED;
+                case PAID -> next == SHIPPED || next == CANCELLED;
+                case SHIPPED -> next == COMPLETED;
+                case COMPLETED, CANCELLED -> false;
+            };
+        }
     }
+
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
