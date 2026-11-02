@@ -16,7 +16,7 @@ public class Brand {
     private String name;
 
     @Column(name = "logo_url", length = 500)
-    private String logo_url;
+    private String logoUrl;
 
     @Column(columnDefinition = "TEXT")
     private String description;
@@ -30,9 +30,9 @@ public class Brand {
     public String getName() {return name;}
     public void setName(String name) {this.name = name;}
 
-    public String getLogo_url() {return logo_url;}
+    public String getLogoUrl() {return logoUrl;}
 
-    public void setLogo_url(String logo_url) {this.logo_url = logo_url;}
+    public void setLogoUrl(String logoUrl) {this.logoUrl = logoUrl;}
 
     public String getDescription() {return description;}
     public void setDescription(String description) {this.description = description;}
