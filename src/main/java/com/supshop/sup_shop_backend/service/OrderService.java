@@ -1,5 +1,7 @@
 package com.supshop.sup_shop_backend.service;
 
+import com.supshop.sup_shop_backend.dto.order.OrderItemResponse;
+import com.supshop.sup_shop_backend.dto.order.OrderResponse;
 import com.supshop.sup_shop_backend.model.*;
 import com.supshop.sup_shop_backend.repository.*;
 import org.springframework.stereotype.Service;
@@ -17,11 +19,7 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
 
-    public OrderService(OrderRepository orderRepository,
-                        CartRepository cartRepository,
-                        CartItemRepository cartItemRepository,
-                        ProductRepository productRepository,
-                        UserRepository userRepository) {
+    public OrderService(OrderRepository orderRepository, CartRepository cartRepository, CartItemRepository cartItemRepository, ProductRepository productRepository, UserRepository userRepository) {
         this.orderRepository = orderRepository;
         this.cartRepository = cartRepository;
         this.cartItemRepository = cartItemRepository;
@@ -30,17 +28,12 @@ public class OrderService {
     }
 
     @Transactional
-    public Order checkout(String username, String shippingAddress) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException(
-                        "Пользователь не найден"));
+    public OrderResponse checkout(String username, String shippingAddress) {
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("Пользователь не найден"));
 
-        Cart cart = cartRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new RuntimeException(
-                        "Корзина не найдена"));
+        Cart cart = cartRepository.findByUserId(user.getId()).orElseThrow(() -> new RuntimeException("Корзина не найдена"));
 
-        List<CartItem> cartItems = cartItemRepository
-                .findByCartId(cart.getId());
+        List<CartItem> cartItems = cartItemRepository.findByCartId(cart.getId());
 
         if (cartItems.isEmpty()) {
             throw new IllegalArgumentException("Корзина пуста");
@@ -54,16 +47,13 @@ public class OrderService {
         BigDecimal total = BigDecimal.ZERO;
 
         for (CartItem cartItem : cartItems) {
-            Product product = productRepository
-                    .findById(cartItem.getProduct().getId())
-                    .orElseThrow(() -> new RuntimeException(
-                            "Товар не найден"));
+            Product product = productRepository.findById(cartItem.getProduct().getId()).orElseThrow(() -> new RuntimeException("Товар не найден"));
+            if (!"ACTIVE".equals(product.getStatus())) {
+                throw new IllegalArgumentException("Товар снят с продажи: " + product.getName() + ". Удалите его из корзины.");
+            }
 
             if (product.getQuantity() < cartItem.getQuantity()) {
-                throw new IllegalArgumentException(
-                        "Недостаточно товара на складе: "
-                                + product.getName()
-                                + ". Доступно: " + product.getQuantity());
+                throw new IllegalArgumentException("Недостаточно товара на складе: " + product.getName() + ". Доступно: " + product.getQuantity());
             }
 
             OrderItem orderItem = new OrderItem();
@@ -75,13 +65,10 @@ public class OrderService {
 
             order.getItems().add(orderItem);
 
-            product.setQuantity(
-                    product.getQuantity() - cartItem.getQuantity());
+            product.setQuantity(product.getQuantity() - cartItem.getQuantity());
             productRepository.save(product);
 
-            total = total.add(
-                    product.getPrice().multiply(
-                            BigDecimal.valueOf(cartItem.getQuantity())));
+            total = total.add(product.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity())));
         }
 
         order.setTotalPrice(total);
@@ -89,32 +76,48 @@ public class OrderService {
 
         cartItemRepository.deleteByCartId(cart.getId());
 
-        return savedOrder;
+        return toResponse(savedOrder);
     }
 
     @Transactional(readOnly = true)
-    public List<Order> getMyOrders(String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException(
-                        "Пользователь не найден"));
+    public List<OrderResponse> getMyOrders(String username) {
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("Пользователь не найден"));
 
-        return orderRepository
-                .findByUserIdOrderByCreatedAtDesc(user.getId());
+        return orderRepository.findByUserIdOrderByCreatedAtDesc(user.getId()).stream().map(this::toResponse).toList();
     }
 
     @Transactional
-    public Order updateStatus(Long orderId, Order.Status newStatus) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException(
-                        "Заказ не найден: " + orderId));
+    public OrderResponse updateStatus(Long orderId, Order.Status newStatus) {
+        Order order = orderRepository.findById(orderId).orElseThrow(() -> new RuntimeException("Заказ не найден: " + orderId));
+
+        if (!order.getStatus().canChangeTo(newStatus)) {
+            throw new IllegalArgumentException("Нельзя сменить статус заказа с " + order.getStatus() + " на " + newStatus);
+        }
+
+        if (newStatus == Order.Status.CANCELLED) {
+            for (OrderItem item : order.getItems()) {
+                Product product = item.getProduct();
+                product.setQuantity(product.getQuantity() + item.getQuantity());
+            }
+        }
 
         order.setStatus(newStatus);
-        return orderRepository.save(order);
+        return toResponse(orderRepository.save(order));
     }
 
     //for ADMIN
     @Transactional(readOnly = true)
-    public List<Order> getAllOrder() {
-        return orderRepository.findAll();
+    public List<OrderResponse> getAllOrder() {
+        return orderRepository.findAll().stream().map(this::toResponse).toList();
+    }
+
+    //Return DTO, not the entity: Order <-> OrderItem loops in jackson and would leak user
+    private OrderResponse toResponse(Order order) {
+        List<OrderItemResponse> items = order.getItems().stream().map(this::toItemResponse).toList();
+        return new OrderResponse(order.getId(), order.getStatus().name(), order.getTotalPrice(), order.getShippingAddress(), items, order.getCreatedAt());
+    }
+
+    private OrderItemResponse toItemResponse(OrderItem item) {
+        return new OrderItemResponse(item.getId(), item.getProduct().getId(), item.getProductName(), item.getQuantity(), item.getPriceAtPurchase());
     }
 }

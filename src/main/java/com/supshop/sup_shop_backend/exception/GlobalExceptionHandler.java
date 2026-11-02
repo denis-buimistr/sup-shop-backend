@@ -2,6 +2,8 @@ package com.supshop.sup_shop_backend.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -17,6 +19,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(ErrorResponse.of(400, ex.getMessage()));
+    }
+
+    // Неверный пароль, заблокированный аккаунт и т.п. — ошибка клиента, а не сервера
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErrorResponse> handleAuthentication(
+            AuthenticationException ex) {
+        String message = ex instanceof BadCredentialsException
+                ? "Неверное имя пользователя или пароль"
+                : ex.getMessage();
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(ErrorResponse.of(401, message));
     }
 
     @ExceptionHandler(RuntimeException.class)

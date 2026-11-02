@@ -1,10 +1,14 @@
 package com.supshop.sup_shop_backend.controller;
 
+import com.supshop.sup_shop_backend.dto.ProductResponse;
 import com.supshop.sup_shop_backend.dto.UserResponse;
-import com.supshop.sup_shop_backend.model.Order;
+import com.supshop.sup_shop_backend.dto.order.OrderResponse;
 import com.supshop.sup_shop_backend.model.User;
 import com.supshop.sup_shop_backend.repository.UserRepository;
 import com.supshop.sup_shop_backend.service.OrderService;
+import com.supshop.sup_shop_backend.service.ProductService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,14 +22,16 @@ public class AdminController {
 
     private final OrderService orderService;
     private final UserRepository userRepository;
+    private final ProductService productService;
 
-    public AdminController(OrderService orderService, UserRepository userRepository) {
+    public AdminController(OrderService orderService, UserRepository userRepository, ProductService productService) {
         this.orderService = orderService;
         this.userRepository = userRepository;
+        this.productService = productService;
     }
 
     @GetMapping("/orders")
-    public ResponseEntity<List<Order>> getAllOrders() {
+    public ResponseEntity<List<OrderResponse>> getAllOrders() {
         return ResponseEntity.ok(orderService.getAllOrder());
     }
 
@@ -45,5 +51,10 @@ public class AdminController {
                 ))
                 .toList();
         return ResponseEntity.ok(users);
+    }
+
+    @GetMapping("/products")
+    public Page<ProductResponse> getAllProducts(Pageable pageable) {
+        return productService.findAllForAdmin(pageable);
     }
 }
