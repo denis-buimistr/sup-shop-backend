@@ -23,6 +23,8 @@ public class ProductService {
     private final BrandRepository brandRepository;
     private final ProductImageRepository productImageRepository;
     private final ProductAttributeRepository productAttributeRepository;
+    private static final String ACTIVE = "ACTIVE";
+
 
     public ProductService(ProductRepository productRepository,
                           CategoryRepository categoryRepository,
@@ -42,13 +44,13 @@ public class ProductService {
         Page<Product> page;
 
         if (categoryId != null) {
-            page = productRepository.findByCategoryId(categoryId, pageable);
+            page = productRepository.findByCategoryIdAndStatus(categoryId, ACTIVE ,pageable);
         } else if (brandId != null) {
-            page = productRepository.findByBrandId(brandId, pageable);
+            page = productRepository.findByBrandIdAndStatus(brandId, ACTIVE, pageable);
         } else if (boardType != null) {
-            page = productRepository.findByBoardType(Product.BoardType.valueOf(boardType), pageable);
+            page = productRepository.findByBoardTypeAndStatus(Product.BoardType.valueOf(boardType), ACTIVE ,pageable);
         } else {
-            page = productRepository.findAll(pageable);
+            page = productRepository.findByStatus(ACTIVE, pageable);
         }
 
         return page.map(this::toResponse);
@@ -61,6 +63,7 @@ public class ProductService {
         return toResponse(product);
    }
 
+   @Transactional
    public ProductResponse create(ProductRequest request) {
         Product product = new Product();
         product.setName(request.name());
@@ -89,6 +92,7 @@ public class ProductService {
 
    }
 
+   @Transactional
    public ProductResponse update(Long id, ProductRequest request ) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Товар не найден: " + id));
@@ -101,6 +105,7 @@ public class ProductService {
         if(request.categoryId() != null) {
             Category category = categoryRepository.findById(request.categoryId())
                     .orElseThrow(() -> new RuntimeException("Категория не найдена: " + request.categoryId()));
+            product.setCategory(category);
         } else {
             product.setCategory(null);
         }
@@ -113,14 +118,18 @@ public class ProductService {
             product.setBrand(null);
         }
 
+        // null при обновлении — осознанное «не доска», а не «не трогать»
         if (request.boardType() != null) {
             product.setBoardType(Product.BoardType.valueOf(request.boardType()));
+        } else {
+            product.setBoardType(null);
         }
 
         Product saved = productRepository.save(product);
         return toResponse(saved);
    }
 
+   @Transactional
    public void delete(Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Товар не найден: " + id));
@@ -160,6 +169,12 @@ public class ProductService {
                 images,
                 attributes
         );
+    }
+
+    //admin
+    @Transactional(readOnly = true)
+    public Page<ProductResponse> findAllForAdmin(Pageable pageable) {
+        return productRepository.findAll(pageable).map(this::toResponse);
     }
 
 }

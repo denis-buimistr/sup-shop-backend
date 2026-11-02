@@ -1,5 +1,6 @@
 package com.supshop.sup_shop_backend.controller;
 
+import com.supshop.sup_shop_backend.dto.order.OrderResponse;
 import com.supshop.sup_shop_backend.model.Order;
 import com.supshop.sup_shop_backend.service.OrderService;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +23,7 @@ public class OrderController {
     }
 
     @PostMapping("/checkout")
-    public ResponseEntity<Order> checkout(
+    public ResponseEntity<OrderResponse> checkout(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestBody Map<String, String> body) {
         String shippingAddress = body.get("shippingAddress");
@@ -32,14 +33,14 @@ public class OrderController {
     }
 
     @GetMapping("/my")
-    public ResponseEntity<List<Order>> myOrders(
+    public ResponseEntity<List<OrderResponse>> myOrders(
             @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(
                 orderService.getMyOrders(userDetails.getUsername()));
     }
 
     @PatchMapping("/{orderId}/status")
-    public ResponseEntity<Order> updateStatus(
+    public ResponseEntity<OrderResponse> updateStatus(
             @PathVariable Long orderId,
             @RequestBody Map<String, String> body) {
         Order.Status newStatus = Order.Status
