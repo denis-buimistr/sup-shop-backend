@@ -4,6 +4,7 @@ import com.supshop.sup_shop_backend.dto.UserResponse;
 import com.supshop.sup_shop_backend.model.User;
 import com.supshop.sup_shop_backend.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import com.supshop.sup_shop_backend.exception.NotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -67,7 +68,7 @@ public class UserService {
 
     private User getUser(String username) {
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException(
+                .orElseThrow(() -> new NotFoundException(
                         "Пользователь не найден: " + username));
     }
 

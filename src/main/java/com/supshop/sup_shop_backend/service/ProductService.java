@@ -8,6 +8,7 @@ import com.supshop.sup_shop_backend.model.Category;
 import com.supshop.sup_shop_backend.dto.ProductRequest;
 import com.supshop.sup_shop_backend.dto.ProductResponse;
 import com.supshop.sup_shop_backend.repository.*;
+import com.supshop.sup_shop_backend.exception.NotFoundException;
 import org.springframework.stereotype.Service;
 
 import org.springframework.data.domain.Page;
@@ -59,7 +60,7 @@ public class ProductService {
     @Transactional(readOnly = true)
     public ProductResponse findByID(Long id) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Товар не найден" + id));
+                .orElseThrow(() -> new NotFoundException("Товар не найден: " + id));
         return toResponse(product);
    }
 
@@ -73,13 +74,13 @@ public class ProductService {
 
         if(request.categoryId() != null) {
             Category category = categoryRepository.findById(request.categoryId())
-                    .orElseThrow(() -> new RuntimeException("Категория не найдена: " + request.categoryId()));
+                    .orElseThrow(() -> new NotFoundException("Категория не найдена: " + request.categoryId()));
             product.setCategory(category);
         }
 
         if(request.brandId() != null) {
             Brand brand = brandRepository.findById(request.brandId())
-                    .orElseThrow(() -> new RuntimeException("Бренд не найден: " + request.brandId()));
+                    .orElseThrow(() -> new NotFoundException("Бренд не найден: " + request.brandId()));
             product.setBrand(brand);
         }
 
@@ -95,7 +96,7 @@ public class ProductService {
    @Transactional
    public ProductResponse update(Long id, ProductRequest request ) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Товар не найден: " + id));
+                .orElseThrow(() -> new NotFoundException("Товар не найден: " + id));
 
         product.setName(request.name());
         product.setDescription(request.description());
@@ -104,7 +105,7 @@ public class ProductService {
 
         if(request.categoryId() != null) {
             Category category = categoryRepository.findById(request.categoryId())
-                    .orElseThrow(() -> new RuntimeException("Категория не найдена: " + request.categoryId()));
+                    .orElseThrow(() -> new NotFoundException("Категория не найдена: " + request.categoryId()));
             product.setCategory(category);
         } else {
             product.setCategory(null);
@@ -112,7 +113,7 @@ public class ProductService {
 
         if (request.brandId() != null) {
             Brand brand = brandRepository.findById(request.brandId())
-                    .orElseThrow(() -> new RuntimeException("Бренд не найден: " + request.brandId()));
+                    .orElseThrow(() -> new NotFoundException("Бренд не найден: " + request.brandId()));
             product.setBrand(brand);
         } else {
             product.setBrand(null);
@@ -132,7 +133,7 @@ public class ProductService {
    @Transactional
    public void delete(Long id) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Товар не найден: " + id));
+                .orElseThrow(() -> new NotFoundException("Товар не найден: " + id));
         product.setStatus("DISCONTINUED");
         productRepository.save(product);
    }
