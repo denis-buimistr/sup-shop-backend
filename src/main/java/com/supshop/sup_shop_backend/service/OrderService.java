@@ -4,6 +4,7 @@ import com.supshop.sup_shop_backend.dto.order.OrderItemResponse;
 import com.supshop.sup_shop_backend.dto.order.OrderResponse;
 import com.supshop.sup_shop_backend.model.*;
 import com.supshop.sup_shop_backend.repository.*;
+import com.supshop.sup_shop_backend.exception.NotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,9 +30,9 @@ public class OrderService {
 
     @Transactional
     public OrderResponse checkout(String username, String shippingAddress) {
-        User user = userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new NotFoundException("Пользователь не найден"));
 
-        Cart cart = cartRepository.findByUserId(user.getId()).orElseThrow(() -> new RuntimeException("Корзина не найдена"));
+        Cart cart = cartRepository.findByUserId(user.getId()).orElseThrow(() -> new NotFoundException("Корзина не найдена"));
 
         List<CartItem> cartItems = cartItemRepository.findByCartId(cart.getId());
 
@@ -47,7 +48,7 @@ public class OrderService {
         BigDecimal total = BigDecimal.ZERO;
 
         for (CartItem cartItem : cartItems) {
-            Product product = productRepository.findById(cartItem.getProduct().getId()).orElseThrow(() -> new RuntimeException("Товар не найден"));
+            Product product = productRepository.findById(cartItem.getProduct().getId()).orElseThrow(() -> new NotFoundException("Товар не найден"));
             if (!"ACTIVE".equals(product.getStatus())) {
                 throw new IllegalArgumentException("Товар снят с продажи: " + product.getName() + ". Удалите его из корзины.");
             }
@@ -81,14 +82,14 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public List<OrderResponse> getMyOrders(String username) {
-        User user = userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new NotFoundException("Пользователь не найден"));
 
         return orderRepository.findByUserIdOrderByCreatedAtDesc(user.getId()).stream().map(this::toResponse).toList();
     }
 
     @Transactional
     public OrderResponse updateStatus(Long orderId, Order.Status newStatus) {
-        Order order = orderRepository.findById(orderId).orElseThrow(() -> new RuntimeException("Заказ не найден: " + orderId));
+        Order order = orderRepository.findById(orderId).orElseThrow(() -> new NotFoundException("Заказ не найден: " + orderId));
 
         if (!order.getStatus().canChangeTo(newStatus)) {
             throw new IllegalArgumentException("Нельзя сменить статус заказа с " + order.getStatus() + " на " + newStatus);
@@ -114,10 +115,23 @@ public class OrderService {
     //Return DTO, not the entity: Order <-> OrderItem loops in jackson and would leak user
     private OrderResponse toResponse(Order order) {
         List<OrderItemResponse> items = order.getItems().stream().map(this::toItemResponse).toList();
-        return new OrderResponse(order.getId(), order.getStatus().name(), order.getTotalPrice(), order.getShippingAddress(), items, order.getCreatedAt());
+        return new OrderResponse(
+                order.getId(),
+                order.getStatus().name(),
+                order.getUser().getUsername(),
+                order.getUser().getEmail(),
+                order.getTotalPrice(),
+                order.getShippingAddress(),
+                items,
+                order.getCreatedAt());
     }
 
     private OrderItemResponse toItemResponse(OrderItem item) {
-        return new OrderItemResponse(item.getId(), item.getProduct().getId(), item.getProductName(), item.getQuantity(), item.getPriceAtPurchase());
+        return new OrderItemResponse(
+                item.getId(),
+                item.getProduct().getId(),
+                item.getProductName(),
+                item.getQuantity(),
+                item.getPriceAtPurchase());
     }
 }

@@ -5,6 +5,7 @@ import com.supshop.sup_shop_backend.model.Product;
 import com.supshop.sup_shop_backend.model.ProductImage;
 import com.supshop.sup_shop_backend.repository.ProductImageRepository;
 import com.supshop.sup_shop_backend.repository.ProductRepository;
+import com.supshop.sup_shop_backend.exception.NotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -41,7 +42,7 @@ public class ProductImageService {
                                        MultipartFile file,
                                        boolean primary) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException(
+                .orElseThrow(() -> new NotFoundException(
                         "Товар не найден: " + productId));
 
         String folder = "products/" + productId;
@@ -63,7 +64,7 @@ public class ProductImageService {
     @Transactional
     public void delete(Long productId, Long imageId) {
         ProductImage image = productImageRepository.findById(imageId)
-                .orElseThrow(() -> new RuntimeException(
+                .orElseThrow(() -> new NotFoundException(
                         "Изображение не найдено: " + imageId));
 
         if (!image.getProduct().getId().equals(productId)) {
@@ -90,7 +91,7 @@ public class ProductImageService {
 
     private void ensureProductExists(Long productId) {
         if (!productRepository.existsById(productId)) {
-            throw new RuntimeException("Товар не найден: " + productId);
+            throw new NotFoundException("Товар не найден: " + productId);
         }
     }
 
