@@ -1,5 +1,7 @@
 package com.supshop.sup_shop_backend.exception;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -12,6 +14,7 @@ import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgument(
@@ -19,6 +22,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(ErrorResponse.of(400, ex.getMessage()));
+    }
+
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNotFound(NotFoundException ex) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(ErrorResponse.of(404, ex.getMessage()));
     }
 
     // Неверный пароль, заблокированный аккаунт и т.п. — ошибка клиента, а не сервера
@@ -33,22 +43,10 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of(401, message));
     }
 
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ErrorResponse> handleRuntime(
-            RuntimeException ex) {
-        String message = ex.getMessage();
-        if (message != null && message.contains("не найден")) {
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .body(ErrorResponse.of(404, message));
-        }
-        return ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ErrorResponse.of(500, message));
-    }
-
+    // Всё, что не поймали обработчики выше, — баг или сбой на сервере: детали в лог, клиенту общая фраза
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneral(Exception ex) {
+        log.error("Необработанная ошибка", ex);
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ErrorResponse.of(500,
