@@ -1,8 +1,11 @@
 package com.supshop.sup_shop_backend.controller;
 
+import com.supshop.sup_shop_backend.dto.order.CheckoutRequest;
 import com.supshop.sup_shop_backend.dto.order.OrderResponse;
+import com.supshop.sup_shop_backend.dto.order.UpdateOrderStatusRequest;
 import com.supshop.sup_shop_backend.model.Order;
 import com.supshop.sup_shop_backend.service.OrderService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -10,7 +13,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
+
 
 @RestController
 @RequestMapping("/api/orders")
@@ -25,11 +28,10 @@ public class OrderController {
     @PostMapping("/checkout")
     public ResponseEntity<OrderResponse> checkout(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody Map<String, String> body) {
-        String shippingAddress = body.get("shippingAddress");
+            @Valid @RequestBody CheckoutRequest request) {
         return ResponseEntity.ok(
                 orderService.checkout(
-                        userDetails.getUsername(), shippingAddress));
+                        userDetails.getUsername(), request.shippingAddress()));
     }
 
     @GetMapping("/my")
@@ -42,10 +44,8 @@ public class OrderController {
     @PatchMapping("/{orderId}/status")
     public ResponseEntity<OrderResponse> updateStatus(
             @PathVariable Long orderId,
-            @RequestBody Map<String, String> body) {
-        Order.Status newStatus = Order.Status
-                .valueOf(body.get("status"));
+            @Valid @RequestBody UpdateOrderStatusRequest request) {
         return ResponseEntity.ok(
-                orderService.updateStatus(orderId, newStatus));
+                orderService.updateStatus(orderId, request.status()));
     }
 }

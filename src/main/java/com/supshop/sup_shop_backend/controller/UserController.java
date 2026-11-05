@@ -1,13 +1,15 @@
 package com.supshop.sup_shop_backend.controller;
 
+import com.supshop.sup_shop_backend.dto.ChangePasswordRequest;
+import com.supshop.sup_shop_backend.dto.UpdateProfileRequest;
 import com.supshop.sup_shop_backend.dto.UserResponse;
 import com.supshop.sup_shop_backend.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/profile")
@@ -29,22 +31,20 @@ public class UserController {
     @PutMapping
     public ResponseEntity<UserResponse> updateProfile(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody Map<String, String> body) {
+            @Valid @RequestBody UpdateProfileRequest request) {
         return ResponseEntity.ok(
                 userService.updateProfile(
-                        userDetails.getUsername(),
-                        body.get("fullName"),
-                        body.get("email")));
+                        userDetails.getUsername(), request.fullName(), request.email()));
     }
 
     @PostMapping("/change-password")
     public ResponseEntity<Void> changePassword(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody Map<String, String> body) {
+            @Valid @RequestBody ChangePasswordRequest request) {
         userService.changePassword(
                 userDetails.getUsername(),
-                body.get("oldPassword"),
-                body.get("newPassword"));
+                request.oldPassword(),
+                request.newPassword());
         return ResponseEntity.noContent().build();
     }
 }

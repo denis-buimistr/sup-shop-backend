@@ -57,10 +57,6 @@ public class UserService {
             throw new IllegalArgumentException("Неверный текущий пароль");
         }
 
-        if (newPassword == null || newPassword.length() < 8) {
-            throw new IllegalArgumentException(
-                    "Новый пароль минимум 8 символов");
-        }
 
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         userRepository.save(user);
