@@ -30,6 +30,12 @@ public class ProductController {
         return productService.findAll(categoryId, brandId, boardType, pageable);
     }
 
+    // для публичной страницы товара; по id — для админки
+    @GetMapping("/slug/{slug}")
+    public ProductResponse getBySlug(@PathVariable String slug) {
+        return productService.findBySlug(slug);
+    }
+
     @GetMapping("/{id}")
     public ProductResponse getByID(@PathVariable Long id) {
         return productService.findByID(id);

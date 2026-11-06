@@ -11,6 +11,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.supshop.sup_shop_backend.util.SlugUtil;
+
 import java.util.List;
 
 @Service
@@ -40,6 +42,7 @@ public class CategoryService {
 
         Category category = new Category();
         category.setName(name);
+        category.setSlug(SlugUtil.uniqueSlug(name, "category", categoryRepository::existsBySlug));
         category.setDescription(request.description());
         category.setParent(findParent(request.parentId()));
 
@@ -103,6 +106,7 @@ public class CategoryService {
         return new CategoryResponse(
                 category.getId(),
                 category.getName(),
+                category.getSlug(),
                 category.getDescription(),
                 category.getParent() != null ? category.getParent().getId() : null
         );

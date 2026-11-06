@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Optional;
+
 public interface ProductRepository extends JpaRepository<Product, Long> {
     Page<Product> findByCategoryId(Long categoryId, Pageable pageable);
     Page<Product> findByBrandId(Long brandId, Pageable pageable);
@@ -18,6 +20,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Page<Product> findByBoardTypeAndStatus(Product.BoardType boardType, String status, Pageable pageable);
     boolean existsByBrandId(Long brandId);
     boolean existsByCategoryId(Long categoryId);
+    boolean existsBySlug(String slug);
+    Optional<Product> findBySlug(String slug);
 
     // проверка и списание одним запросом: два параллельных заказа не уведут остаток в минус
     @Modifying

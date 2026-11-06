@@ -21,9 +21,15 @@ public class Category {
     @JoinColumn(name = "parent_id")
     private Category parent;
 
+    @Column(nullable = false, unique = true, length = 200)
+    private String slug;
+
    //getters and setters
 
-    public Long getId() { return id; }
+    public String getSlug() {return slug;}
+    public void setSlug(String slug) {this.slug = slug;}
+
+ public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
     public String getName() { return name; }
