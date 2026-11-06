@@ -54,7 +54,7 @@ public class OrderService {
         order.setPaymentMethod(request.paymentMethod());
         order.setComment(request.comment());
         order.setDeliveryPrice(delivery.getPrice());
-        // при самовывозе адрес не храним, даже если фронт его прислал
+        // при самовывозе адрес не храним
         if (delivery.requiresAddress()) {
             order.setCity(request.city());
             order.setShippingAddress(request.shippingAddress());
@@ -81,8 +81,11 @@ public class OrderService {
 
             order.getItems().add(orderItem);
 
-            product.setQuantity(product.getQuantity() - cartItem.getQuantity());
-            productRepository.save(product);
+            // проверка на гонку
+            int updated = productRepository.decreaseStock(product.getId(), cartItem.getQuantity());
+            if (updated == 0) {
+                throw new IllegalArgumentException("Недостаточно товара на складе: " + product.getName());
+            }
 
             total = total.add(product.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity())));
         }
@@ -112,8 +115,7 @@ public class OrderService {
 
         if (newStatus == Order.Status.CANCELLED) {
             for (OrderItem item : order.getItems()) {
-                Product product = item.getProduct();
-                product.setQuantity(product.getQuantity() + item.getQuantity());
+                productRepository.increaseStock(item.getProduct().getId(), item.getQuantity());
             }
         }
 
