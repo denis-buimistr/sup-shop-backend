@@ -2,7 +2,7 @@ app:
   jwt:
     secret: ${JWT_SECRET}
   cors:
-    allowed-origin: ${CORS_ALLLOWED_ORIGINS}
+    allowed-origin: ${CORS_ALLOWED_ORIGIN}
 
 logging:
   level:
