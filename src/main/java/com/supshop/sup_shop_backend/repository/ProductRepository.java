@@ -16,6 +16,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Page<Product> findByCategoryIdAndStatus(Long categoryId, String status, Pageable pageable);
     Page<Product> findByBrandIdAndStatus(Long brandId, String status, Pageable pageable);
     Page<Product> findByBoardTypeAndStatus(Product.BoardType boardType, String status, Pageable pageable);
+    boolean existsByBrandId(Long brandId);
+    boolean existsByCategoryId(Long categoryId);
 
     // проверка и списание одним запросом: два параллельных заказа не уведут остаток в минус
     @Modifying

@@ -1,32 +1,43 @@
 package com.supshop.sup_shop_backend.controller;
 
-import com.supshop.sup_shop_backend.repository.CategoryRepository;
+import com.supshop.sup_shop_backend.dto.CategoryRequest;
 import com.supshop.sup_shop_backend.dto.CategoryResponse;
-import com.supshop.sup_shop_backend.model.Category;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.supshop.sup_shop_backend.service.CategoryService;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/categories")
 public class CategoryController {
-    private final CategoryRepository categoryRepository;
 
-    public CategoryController(CategoryRepository categoryRepository) {
-        this.categoryRepository = categoryRepository;
+    private final CategoryService categoryService;
+
+    public CategoryController(CategoryService categoryService) {
+        this.categoryService = categoryService;
     }
 
     @GetMapping
     public List<CategoryResponse> getAll() {
-        return categoryRepository.findAll().stream()
-                .map(c -> new CategoryResponse(
-                        c.getId(),
-                        c.getName(),
-                        c.getDescription(),
-                        c.getParent() != null ? c.getParent().getId() : null
-                ))
-                .toList();
+        return categoryService.getAll();
+    }
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public CategoryResponse create(@Valid @RequestBody CategoryRequest request) {
+        return categoryService.create(request);
+    }
+
+    @PutMapping("/{id}")
+    public CategoryResponse update(@PathVariable Long id, @Valid @RequestBody CategoryRequest request) {
+        return categoryService.update(id, request);
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id) {
+        categoryService.delete(id);
     }
 }
