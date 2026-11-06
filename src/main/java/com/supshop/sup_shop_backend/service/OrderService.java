@@ -1,5 +1,6 @@
 package com.supshop.sup_shop_backend.service;
 
+import com.supshop.sup_shop_backend.dto.order.CheckoutRequest;
 import com.supshop.sup_shop_backend.dto.order.OrderItemResponse;
 import com.supshop.sup_shop_backend.dto.order.OrderResponse;
 import com.supshop.sup_shop_backend.model.*;
@@ -29,7 +30,7 @@ public class OrderService {
     }
 
     @Transactional
-    public OrderResponse checkout(String username, String shippingAddress) {
+    public OrderResponse checkout(String username, CheckoutRequest request) {
         User user = userRepository.findByUsername(username).orElseThrow(() -> new NotFoundException("Пользователь не найден"));
 
         Cart cart = cartRepository.findByUserId(user.getId()).orElseThrow(() -> new NotFoundException("Корзина не найдена"));
@@ -40,12 +41,26 @@ public class OrderService {
             throw new IllegalArgumentException("Корзина пуста");
         }
 
+        DeliveryMethod delivery = request.deliveryMethod();
+
         Order order = new Order();
         order.setUser(user);
-        order.setShippingAddress(shippingAddress);
         order.setStatus(Order.Status.NEW);
+        order.setFirstName(request.firstName());
+        order.setLastName(request.lastName());
+        order.setPhone(request.phone());
+        order.setEmail(request.email());
+        order.setDeliveryMethod(delivery);
+        order.setPaymentMethod(request.paymentMethod());
+        order.setComment(request.comment());
+        order.setDeliveryPrice(delivery.getPrice());
+        // при самовывозе адрес не храним, даже если фронт его прислал
+        if (delivery.requiresAddress()) {
+            order.setCity(request.city());
+            order.setShippingAddress(request.shippingAddress());
+        }
 
-        BigDecimal total = BigDecimal.ZERO;
+        BigDecimal total = delivery.getPrice();
 
         for (CartItem cartItem : cartItems) {
             Product product = productRepository.findById(cartItem.getProduct().getId()).orElseThrow(() -> new NotFoundException("Товар не найден"));
@@ -120,8 +135,17 @@ public class OrderService {
                 order.getStatus().name(),
                 order.getUser().getUsername(),
                 order.getUser().getEmail(),
-                order.getTotalPrice(),
+                order.getFirstName(),
+                order.getLastName(),
+                order.getPhone(),
+                order.getEmail(),
+                order.getDeliveryMethod(),
+                order.getCity(),
                 order.getShippingAddress(),
+                order.getDeliveryPrice(),
+                order.getPaymentMethod(),
+                order.getComment(),
+                order.getTotalPrice(),
                 items,
                 order.getCreatedAt());
     }
