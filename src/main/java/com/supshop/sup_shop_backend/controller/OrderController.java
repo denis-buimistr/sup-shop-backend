@@ -30,8 +30,7 @@ public class OrderController {
             @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody CheckoutRequest request) {
         return ResponseEntity.ok(
-                orderService.checkout(
-                        userDetails.getUsername(), request.shippingAddress()));
+                orderService.checkout(userDetails.getUsername(), request));
     }
 
     @GetMapping("/my")

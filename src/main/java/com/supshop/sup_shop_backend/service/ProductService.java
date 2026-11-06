@@ -15,6 +15,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.supshop.sup_shop_backend.util.SlugUtil;
+
 import java.util.List;
 
 @Service
@@ -64,10 +66,19 @@ public class ProductService {
         return toResponse(product);
    }
 
+    @Transactional(readOnly = true)
+    public ProductResponse findBySlug(String slug) {
+        Product product = productRepository.findBySlug(slug)
+                .orElseThrow(() -> new NotFoundException("Product not found: " + slug));
+        return toResponse(product);
+    }
+
    @Transactional
    public ProductResponse create(ProductRequest request) {
         Product product = new Product();
         product.setName(request.name());
+        // slug задаётся один раз: при переименовании старые ссылки на товар должны работать
+        product.setSlug(SlugUtil.uniqueSlug(request.name(), "product", productRepository::existsBySlug));
         product.setDescription(request.description());
         product.setPrice(request.price());
         product.setQuantity(request.quantity());
@@ -160,6 +171,7 @@ public class ProductService {
         return new ProductResponse(
                 p.getId(),
                 p.getName(),
+                p.getSlug(),
                 p.getDescription(),
                 p.getPrice(),
                 p.getQuantity(),

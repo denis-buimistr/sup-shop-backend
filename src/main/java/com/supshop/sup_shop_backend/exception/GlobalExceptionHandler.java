@@ -32,6 +32,13 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of(404, ex.getMessage()));
     }
 
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<ErrorResponse> handleConflict(ConflictException ex) {
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(ErrorResponse.of(409, ex.getMessage()));
+    }
+
     // Неверный пароль, заблокированный аккаунт и т.п. — ошибка клиента, а не сервера
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ErrorResponse> handleAuthentication(

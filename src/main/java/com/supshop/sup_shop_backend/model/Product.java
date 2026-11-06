@@ -49,6 +49,13 @@ public class Product {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(nullable = false, unique = true, length = 200)
+    private String slug;
+
+    public String getSlug() {return slug;}
+
+    public void setSlug(String slug) {this.slug = slug;}
+
     @PrePersist
     void PrePersist() {
         createdAt = LocalDateTime.now();
