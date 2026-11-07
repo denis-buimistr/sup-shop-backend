@@ -5,6 +5,7 @@ import com.supshop.sup_shop_backend.dto.CategoryResponse;
 import com.supshop.sup_shop_backend.exception.ConflictException;
 import com.supshop.sup_shop_backend.exception.NotFoundException;
 import com.supshop.sup_shop_backend.model.Category;
+import com.supshop.sup_shop_backend.repository.CategoryProductCount;
 import com.supshop.sup_shop_backend.repository.CategoryRepository;
 import com.supshop.sup_shop_backend.repository.ProductRepository;
 import org.springframework.data.domain.Sort;
@@ -13,7 +14,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.supshop.sup_shop_backend.util.SlugUtil;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Service
 public class CategoryService {
@@ -28,9 +36,53 @@ public class CategoryService {
 
     @Transactional(readOnly = true)
     public List<CategoryResponse> getAll() {
-        return categoryRepository.findAll(Sort.by("name")).stream()
-                .map(this::toResponse)
+        List<Category> categories = categoryRepository.findAll(Sort.by("name"));
+        Map<Long, Long> counts = countProductsWithSubcategories(categories);
+        return categories.stream()
+                .map(c -> toResponse(c, counts.getOrDefault(c.getId(), 0L)))
                 .toList();
+    }
+
+    // id категории и всех её потомков — каталог «SUP» должен показывать товары из всех подкатегорий SUP
+    @Transactional(readOnly = true)
+    public Set<Long> findSelfAndDescendantIds(String slug) {
+        List<Category> categories = categoryRepository.findAll();
+        Category root = categories.stream()
+                .filter(c -> c.getSlug().equals(slug))
+                .findFirst()
+                .orElseThrow(() -> new NotFoundException("Category not found: " + slug));
+
+        Map<Long, List<Long>> childrenByParent = new HashMap<>();
+        for (Category c : categories) {
+            if (c.getParent() != null) {
+                childrenByParent.computeIfAbsent(c.getParent().getId(), k -> new ArrayList<>()).add(c.getId());
+            }
+        }
+
+        Set<Long> ids = new HashSet<>();
+        Deque<Long> queue = new ArrayDeque<>(List.of(root.getId()));
+        while (!queue.isEmpty()) {
+            Long id = queue.poll();
+            ids.add(id);
+            queue.addAll(childrenByParent.getOrDefault(id, List.of()));
+        }
+        return ids;
+    }
+
+    // товары лежат в листьях, а в меню у «SUP» нужна сумма по всем подкатегориям — поднимаем счётчик к родителям
+    private Map<Long, Long> countProductsWithSubcategories(List<Category> categories) {
+        Map<Long, Long> parentOf = new HashMap<>();
+        for (Category c : categories) {
+            parentOf.put(c.getId(), c.getParent() != null ? c.getParent().getId() : null);
+        }
+
+        Map<Long, Long> totals = new HashMap<>();
+        for (CategoryProductCount row : productRepository.countActiveByCategory()) {
+            for (Long id = row.getCategoryId(); id != null; id = parentOf.get(id)) {
+                totals.merge(id, row.getTotal(), Long::sum);
+            }
+        }
+        return totals;
     }
 
     @Transactional
@@ -46,7 +98,7 @@ public class CategoryService {
         category.setDescription(request.description());
         category.setParent(findParent(request.parentId()));
 
-        return toResponse(categoryRepository.save(category));
+        return toResponse(categoryRepository.save(category), 0L);
     }
 
     @Transactional
@@ -66,7 +118,8 @@ public class CategoryService {
         category.setName(name);
         category.setDescription(request.description());
         category.setParent(parent);
-        return toResponse(category);
+        long count = countProductsWithSubcategories(categoryRepository.findAll()).getOrDefault(id, 0L);
+        return toResponse(category, count);
     }
 
     @Transactional
@@ -102,13 +155,14 @@ public class CategoryService {
         return false;
     }
 
-    private CategoryResponse toResponse(Category category) {
+    private CategoryResponse toResponse(Category category, long productCount) {
         return new CategoryResponse(
                 category.getId(),
                 category.getName(),
                 category.getSlug(),
                 category.getDescription(),
-                category.getParent() != null ? category.getParent().getId() : null
+                category.getParent() != null ? category.getParent().getId() : null,
+                productCount
         );
     }
 }

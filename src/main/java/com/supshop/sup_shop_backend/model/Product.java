@@ -25,6 +25,10 @@ public class Product {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
 
+    // старая цена для товаров со скидкой; null — скидки нет
+    @Column(name = "compare_at_price", precision = 10, scale = 2)
+    private BigDecimal compareAtPrice;
+
     @Column(nullable = false)
     private Integer quantity = 0;
 
@@ -51,6 +55,9 @@ public class Product {
 
     @Column(nullable = false, unique = true, length = 200)
     private String slug;
+
+    public BigDecimal getCompareAtPrice() { return compareAtPrice; }
+    public void setCompareAtPrice(BigDecimal compareAtPrice) { this.compareAtPrice = compareAtPrice; }
 
     public String getSlug() {return slug;}
 

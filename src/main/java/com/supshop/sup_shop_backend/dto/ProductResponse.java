@@ -9,6 +9,7 @@ public record ProductResponse (
     String slug,
     String description,
     BigDecimal price,
+    BigDecimal compareAtPrice,
     Integer quantity,
     String brandName,
     String categoryName,

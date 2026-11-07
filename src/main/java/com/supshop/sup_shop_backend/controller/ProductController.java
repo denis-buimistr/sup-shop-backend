@@ -1,9 +1,9 @@
 package com.supshop.sup_shop_backend.controller;
 
+import com.supshop.sup_shop_backend.dto.ProductFilter;
 import com.supshop.sup_shop_backend.dto.ProductRequest;
 import com.supshop.sup_shop_backend.dto.ProductResponse;
 import com.supshop.sup_shop_backend.service.ProductService;
-import jakarta.persistence.Id;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,12 +22,8 @@ public class ProductController {
     }
 
     @GetMapping
-    public Page<ProductResponse> getAll(
-            @RequestParam(required = false) Long categoryId,
-            @RequestParam(required = false) Long brandId,
-            @RequestParam(required = false) String boardType,
-            Pageable pageable) {
-        return productService.findAll(categoryId, brandId, boardType, pageable);
+    public Page<ProductResponse> getAll(ProductFilter filter, Pageable pageable) {
+        return productService.findAll(filter, pageable);
     }
 
     // для публичной страницы товара; по id — для админки

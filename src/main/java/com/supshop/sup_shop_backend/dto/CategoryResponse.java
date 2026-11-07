@@ -5,5 +5,7 @@ public record CategoryResponse(
         String name,
         String slug,
         String description,
-        Long parentId
+        Long parentId,
+        // активные товары в категории вместе со всеми подкатегориями
+        long productCount
 ) {}
