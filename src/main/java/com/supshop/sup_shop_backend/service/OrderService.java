@@ -6,6 +6,7 @@ import com.supshop.sup_shop_backend.dto.order.OrderResponse;
 import com.supshop.sup_shop_backend.model.*;
 import com.supshop.sup_shop_backend.repository.*;
 import com.supshop.sup_shop_backend.exception.NotFoundException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,13 +21,16 @@ public class OrderService {
     private final CartItemRepository cartItemRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
+    private final BigDecimal freeDeliveryFrom;
 
-    public OrderService(OrderRepository orderRepository, CartRepository cartRepository, CartItemRepository cartItemRepository, ProductRepository productRepository, UserRepository userRepository) {
+    public OrderService(OrderRepository orderRepository, CartRepository cartRepository, CartItemRepository cartItemRepository, ProductRepository productRepository, UserRepository userRepository,
+                        @Value("${app.shop.free-delivery-from}") BigDecimal freeDeliveryFrom) {
         this.orderRepository = orderRepository;
         this.cartRepository = cartRepository;
         this.cartItemRepository = cartItemRepository;
         this.productRepository = productRepository;
         this.userRepository = userRepository;
+        this.freeDeliveryFrom = freeDeliveryFrom;
     }
 
     @Transactional
@@ -53,14 +57,13 @@ public class OrderService {
         order.setDeliveryMethod(delivery);
         order.setPaymentMethod(request.paymentMethod());
         order.setComment(request.comment());
-        order.setDeliveryPrice(delivery.getPrice());
         // при самовывозе адрес не храним
         if (delivery.requiresAddress()) {
             order.setCity(request.city());
             order.setShippingAddress(request.shippingAddress());
         }
 
-        BigDecimal total = delivery.getPrice();
+        BigDecimal itemsTotal = BigDecimal.ZERO;
 
         for (CartItem cartItem : cartItems) {
             Product product = productRepository.findById(cartItem.getProduct().getId()).orElseThrow(() -> new NotFoundException("Товар не найден"));
@@ -87,10 +90,13 @@ public class OrderService {
                 throw new IllegalArgumentException("Недостаточно товара на складе: " + product.getName());
             }
 
-            total = total.add(product.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity())));
+            itemsTotal = itemsTotal.add(product.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity())));
         }
 
-        order.setTotalPrice(total);
+        // доставку считаю после товаров: от суммы free-delivery-from она бесплатная для любого способа
+        BigDecimal deliveryPrice = itemsTotal.compareTo(freeDeliveryFrom) >= 0 ? BigDecimal.ZERO : delivery.getPrice();
+        order.setDeliveryPrice(deliveryPrice);
+        order.setTotalPrice(itemsTotal.add(deliveryPrice));
         Order savedOrder = orderRepository.save(order);
 
         cartItemRepository.deleteByCartId(cart.getId());
