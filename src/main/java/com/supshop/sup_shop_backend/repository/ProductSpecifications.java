@@ -27,6 +27,10 @@ public final class ProductSpecifications {
         return (root, query, cb) -> root.get("category").get("id").in(categoryIds);
     }
 
+    public static Specification<Product> hasIds(Collection<Long> ids) {
+        return (root, query, cb) -> root.get("id").in(ids);
+    }
+
     public static Specification<Product> hasBrands(Collection<Long> brandIds) {
         return (root, query, cb) -> root.get("brand").get("id").in(brandIds);
     }

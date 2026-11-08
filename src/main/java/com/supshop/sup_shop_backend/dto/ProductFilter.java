@@ -3,7 +3,7 @@ package com.supshop.sup_shop_backend.dto;
 import java.math.BigDecimal;
 import java.util.List;
 
-// Параметры каталога из query string: /api/products?category=sup&brand=1&brand=3&minPrice=5000&onSale=true&q=carbon
+// Параметры каталога из query string: /api/products?category=sup&brand=1&brand=3&minPrice=5000&onSale=true&q=carbon&id=3&id=7
 public record ProductFilter(
         String category,
         List<Long> brand,
@@ -13,5 +13,7 @@ public record ProductFilter(
         Boolean onSale,
         String boardType,
         // строка из поиска в шапке
-        String q
+        String q,
+        // конкретные товары, например для страницы избранного
+        List<Long> id
 ) {}
