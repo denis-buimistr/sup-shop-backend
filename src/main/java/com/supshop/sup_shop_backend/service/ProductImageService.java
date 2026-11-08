@@ -6,6 +6,7 @@ import com.supshop.sup_shop_backend.model.ProductImage;
 import com.supshop.sup_shop_backend.repository.ProductImageRepository;
 import com.supshop.sup_shop_backend.repository.ProductRepository;
 import com.supshop.sup_shop_backend.exception.ConflictException;
+import com.supshop.sup_shop_backend.exception.BadRequestException;
 import com.supshop.sup_shop_backend.exception.NotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,8 +48,7 @@ public class ProductImageService {
                                        MultipartFile file,
                                        boolean primary) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new NotFoundException(
-                        "Товар не найден: " + productId));
+                .orElseThrow(() -> new NotFoundException("error.product.notFound"));
 
         String folder = "products/" + productId;
         String url = s3Service.uploadFile(file, folder);
@@ -69,12 +69,10 @@ public class ProductImageService {
     @Transactional
     public void delete(Long productId, Long imageId) {
         ProductImage image = productImageRepository.findById(imageId)
-                .orElseThrow(() -> new NotFoundException(
-                        "Изображение не найдено: " + imageId));
+                .orElseThrow(() -> new NotFoundException("error.image.notFound"));
 
         if (!image.getProduct().getId().equals(productId)) {
-            throw new IllegalArgumentException(
-                    "Изображение не принадлежит товару " + productId);
+            throw new BadRequestException("error.image.notOfProduct");
         }
 
         s3Service.deleteFile(extractKey(image.getImageUrl()));
@@ -95,7 +93,7 @@ public class ProductImageService {
 
         // список должен совпадать с фото в БД один в один, иначе админка показывает старое состояние
         if (imageIds.size() != byId.size() || !byId.keySet().equals(new HashSet<>(imageIds))) {
-            throw new ConflictException("Photos of this product have changed, reload the page");
+            throw new ConflictException("error.image.orderChanged");
         }
 
         List<ProductImage> ordered = imageIds.stream().map(byId::get).toList();
@@ -126,7 +124,7 @@ public class ProductImageService {
 
     private void ensureProductExists(Long productId) {
         if (!productRepository.existsById(productId)) {
-            throw new NotFoundException("Товар не найден: " + productId);
+            throw new NotFoundException("error.product.notFound");
         }
     }
 

@@ -5,12 +5,12 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public record UpdateProfileRequest (
-    @Size(max = 150 ,message = "Полное имя: максимум 150 символов")
+    @Size(max = 150 ,message = "{profile.fullName.size}")
     String fullName,
 
-    @NotBlank(message = "Email обязателен")
-    @Email(message = "Некорректный email")
-    @Size(max = 150, message = "Email: максимум 150 символов")
+    @NotBlank(message = "{profile.email.required}")
+    @Email(message = "{profile.email.invalid}")
+    @Size(max = 150, message = "{profile.email.size}")
     String email
 ) {}
 

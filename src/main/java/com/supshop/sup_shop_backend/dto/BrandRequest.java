@@ -4,8 +4,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public record BrandRequest (
-    @NotBlank(message = "Название бренда обязательно")
-    @Size(max = 100, message = "Название: максимум 100 символов")
+    @NotBlank(message = "{brand.name.required}")
+    @Size(max = 100, message = "{brand.name.size}")
     String name,
 
     String description

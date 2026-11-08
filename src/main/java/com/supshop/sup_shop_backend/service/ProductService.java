@@ -32,6 +32,7 @@ public class ProductService {
     private final ProductImageRepository productImageRepository;
     private final ProductAttributeRepository productAttributeRepository;
     private final CategoryService categoryService;
+    private final TranslationService translationService;
 
 
     public ProductService(ProductRepository productRepository,
@@ -39,13 +40,15 @@ public class ProductService {
                           BrandRepository brandRepository,
                           ProductImageRepository productImageRepository,
                           ProductAttributeRepository productAttributeRepository,
-                          CategoryService categoryService) {
+                          CategoryService categoryService,
+                          TranslationService translationService) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.brandRepository = brandRepository;
         this.productImageRepository = productImageRepository;
         this.productAttributeRepository = productAttributeRepository;
         this.categoryService = categoryService;
+        this.translationService = translationService;
     }
 
     @Transactional(readOnly = true)
@@ -82,20 +85,20 @@ public class ProductService {
             conditions.add(hasIds(filter.id()));
         }
 
-        return productRepository.findAll(Specification.allOf(conditions), pageable).map(this::toResponse);
+        return toResponses(productRepository.findAll(Specification.allOf(conditions), pageable));
     }
 
     @Transactional(readOnly = true)
     public ProductResponse findByID(Long id) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Товар не найден: " + id));
+                .orElseThrow(() -> new NotFoundException("error.product.notFound"));
         return toResponse(product);
    }
 
     @Transactional(readOnly = true)
     public ProductResponse findBySlug(String slug) {
         Product product = productRepository.findBySlug(slug)
-                .orElseThrow(() -> new NotFoundException("Product not found: " + slug));
+                .orElseThrow(() -> new NotFoundException("error.product.notFound"));
         return toResponse(product);
     }
 
@@ -112,13 +115,13 @@ public class ProductService {
 
         if(request.categoryId() != null) {
             Category category = categoryRepository.findById(request.categoryId())
-                    .orElseThrow(() -> new NotFoundException("Категория не найдена: " + request.categoryId()));
+                    .orElseThrow(() -> new NotFoundException("error.category.notFound"));
             product.setCategory(category);
         }
 
         if(request.brandId() != null) {
             Brand brand = brandRepository.findById(request.brandId())
-                    .orElseThrow(() -> new NotFoundException("Бренд не найден: " + request.brandId()));
+                    .orElseThrow(() -> new NotFoundException("error.brand.notFound"));
             product.setBrand(brand);
         }
 
@@ -134,7 +137,7 @@ public class ProductService {
    @Transactional
    public ProductResponse update(Long id, ProductRequest request ) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Товар не найден: " + id));
+                .orElseThrow(() -> new NotFoundException("error.product.notFound"));
 
         product.setName(request.name());
         product.setDescription(request.description());
@@ -144,7 +147,7 @@ public class ProductService {
 
         if(request.categoryId() != null) {
             Category category = categoryRepository.findById(request.categoryId())
-                    .orElseThrow(() -> new NotFoundException("Категория не найдена: " + request.categoryId()));
+                    .orElseThrow(() -> new NotFoundException("error.category.notFound"));
             product.setCategory(category);
         } else {
             product.setCategory(null);
@@ -152,7 +155,7 @@ public class ProductService {
 
         if (request.brandId() != null) {
             Brand brand = brandRepository.findById(request.brandId())
-                    .orElseThrow(() -> new NotFoundException("Бренд не найден: " + request.brandId()));
+                    .orElseThrow(() -> new NotFoundException("error.brand.notFound"));
             product.setBrand(brand);
         } else {
             product.setBrand(null);
@@ -172,12 +175,22 @@ public class ProductService {
    @Transactional
    public void delete(Long id) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Товар не найден: " + id));
+                .orElseThrow(() -> new NotFoundException("error.product.notFound"));
         product.setStatus("DISCONTINUED");
         productRepository.save(product);
    }
 
+    // переводы для всей страницы гружу заранее, иначе на каждый товар ушли бы отдельные запросы
+    private Page<ProductResponse> toResponses(Page<Product> page) {
+        ProductTexts texts = translationService.products(page.getContent());
+        return page.map(p -> toResponse(p, texts));
+    }
+
     private ProductResponse toResponse(Product p) {
+        return toResponse(p, translationService.products(List.of(p)));
+    }
+
+    private ProductResponse toResponse(Product p, ProductTexts texts) {
         List<ProductImageResponse> images = productImageRepository
                 .findByProductIdOrderBySortOrderAsc(p.getId())
                 .stream()
@@ -192,20 +205,20 @@ public class ProductService {
                 .findByProductId(p.getId())
                 .stream()
                 .map(attr -> new ProductAttributeResponse(
-                        attr.getAttributeName(),
-                        attr.getAttributeValue()))
+                        texts.attributeName(attr),
+                        texts.attributeValue(attr)))
                 .toList();
 
         return new ProductResponse(
                 p.getId(),
-                p.getName(),
+                texts.name(p),
                 p.getSlug(),
-                p.getDescription(),
+                texts.description(p),
                 p.getPrice(),
                 p.getCompareAtPrice(),
                 p.getQuantity(),
                 p.getBrand() != null ? p.getBrand().getName() : null,
-                p.getCategory() != null ? p.getCategory().getName() : null,
+                texts.categoryName(p.getCategory()),
                 p.getBoardType() != null ? p.getBoardType().name() : null,
                 p.getStatus(),
                 images,
@@ -216,7 +229,7 @@ public class ProductService {
     //admin
     @Transactional(readOnly = true)
     public Page<ProductResponse> findAllForAdmin(Pageable pageable) {
-        return productRepository.findAll(pageable).map(this::toResponse);
+        return toResponses(productRepository.findAll(pageable));
     }
 
 }

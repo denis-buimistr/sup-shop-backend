@@ -1,5 +1,6 @@
 package com.supshop.sup_shop_backend.service;
 
+import com.supshop.sup_shop_backend.exception.BadRequestException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -60,18 +61,16 @@ public class S3Service {
 
     private void validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("Файл не выбран");
+            throw new BadRequestException("error.file.empty");
         }
 
         if (file.getSize() > 5 * 1024 * 1024) {
-            throw new IllegalArgumentException(
-                    "Файл слишком большой. Максимум 5 МБ");
+            throw new BadRequestException("error.file.tooBig");
         }
 
         String contentType = file.getContentType();
         if (contentType == null || !contentType.startsWith("image/")) {
-            throw new IllegalArgumentException(
-                    "Разрешены только изображения");
+            throw new BadRequestException("error.file.notImage");
         }
     }
 

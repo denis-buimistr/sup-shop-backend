@@ -4,6 +4,7 @@ import com.supshop.sup_shop_backend.dto.UserResponse;
 import com.supshop.sup_shop_backend.model.User;
 import com.supshop.sup_shop_backend.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import com.supshop.sup_shop_backend.exception.BadRequestException;
 import com.supshop.sup_shop_backend.exception.NotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,8 +35,7 @@ public class UserService {
 
         if (email != null && !email.equals(user.getEmail())) {
             if (userRepository.existsByEmail(email)) {
-                throw new IllegalArgumentException(
-                        "Email уже используется");
+                throw new BadRequestException("error.auth.emailTaken");
             }
             user.setEmail(email);
         }
@@ -54,7 +54,7 @@ public class UserService {
         User user = getUser(username);
 
         if (!passwordEncoder.matches(oldPassword, user.getPasswordHash())) {
-            throw new IllegalArgumentException("Неверный текущий пароль");
+            throw new BadRequestException("error.auth.wrongPassword");
         }
 
 
@@ -64,8 +64,7 @@ public class UserService {
 
     private User getUser(String username) {
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new NotFoundException(
-                        "Пользователь не найден: " + username));
+                .orElseThrow(() -> new NotFoundException("error.user.notFound"));
     }
 
     private UserResponse toResponse(User user) {

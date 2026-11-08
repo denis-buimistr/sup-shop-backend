@@ -6,19 +6,19 @@ import jakarta.validation.constraints.Size;
 
 public record RegisterRequest (
 
-        @NotBlank(message = "Имя пользователя обязательно")
-        @Size(min = 3, max = 50, message = "Имя от 3 до 50 символов")
+        @NotBlank(message = "{register.username.required}")
+        @Size(min = 3, max = 50, message = "{register.username.size}")
         String username,
 
-        @NotBlank(message = "Email обязателен")
-        @Email(message = "Неккоректный формат email")
+        @NotBlank(message = "{register.email.required}")
+        @Email(message = "{register.email.invalid}")
         String email,
 
-        @NotBlank(message = "Пароль обязателен")
-        @Size(min = 8, message = "Пароль минимум 8 символов")
+        @NotBlank(message = "{register.password.required}")
+        @Size(min = 8, message = "{register.password.size}")
         String password,
 
-        @Size(max = 150, message = "Полное имя: максимум 150 символов")
+        @Size(max = 150, message = "{register.fullName.size}")
         String fullName
 ) {}
 
