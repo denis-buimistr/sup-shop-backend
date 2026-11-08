@@ -1,6 +1,9 @@
 spring:
   profiles:
     default: dev
+  messages:
+    # без этого для языка без своего файла Spring берёт язык системы, а не messages.properties
+    fallback-to-system-locale: false
   application:
     name: sup-shop-backend
 

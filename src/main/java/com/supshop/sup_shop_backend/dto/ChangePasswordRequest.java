@@ -4,11 +4,11 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public record ChangePasswordRequest (
-        @NotBlank(message = "Текущий пароль обязателен")
+        @NotBlank(message = "{password.current.required}")
         String oldPassword,
 
-        @NotBlank(message = "Новый пароль обязателен")
-        @Size(min = 8, message = "Новый пароль минимум 8 символов")
+        @NotBlank(message = "{password.new.required}")
+        @Size(min = 8, message = "{password.new.size}")
         String newPassword
 ){}
 

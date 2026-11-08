@@ -36,7 +36,7 @@ public class WishlistService {
     public void add(String username, Long productId) {
         User user = getUser(username);
         if (!productRepository.existsById(productId)) {
-            throw new NotFoundException("Product not found: " + productId);
+            throw new NotFoundException("error.product.notFound");
         }
         wishlistItemRepository.addAll(user.getId(), List.of(productId));
     }
@@ -58,6 +58,6 @@ public class WishlistService {
 
     private User getUser(String username) {
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new NotFoundException("User not found: " + username));
+                .orElseThrow(() -> new NotFoundException("error.user.notFound"));
     }
 }

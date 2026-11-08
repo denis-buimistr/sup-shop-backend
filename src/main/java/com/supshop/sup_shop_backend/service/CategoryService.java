@@ -3,6 +3,7 @@ package com.supshop.sup_shop_backend.service;
 import com.supshop.sup_shop_backend.dto.CategoryRequest;
 import com.supshop.sup_shop_backend.dto.CategoryResponse;
 import com.supshop.sup_shop_backend.exception.ConflictException;
+import com.supshop.sup_shop_backend.exception.BadRequestException;
 import com.supshop.sup_shop_backend.exception.NotFoundException;
 import com.supshop.sup_shop_backend.model.Category;
 import com.supshop.sup_shop_backend.repository.CategoryProductCount;
@@ -28,18 +29,23 @@ public class CategoryService {
 
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
+    private final TranslationService translationService;
 
-    public CategoryService(CategoryRepository categoryRepository, ProductRepository productRepository) {
+    public CategoryService(CategoryRepository categoryRepository,
+                           ProductRepository productRepository,
+                           TranslationService translationService) {
         this.categoryRepository = categoryRepository;
         this.productRepository = productRepository;
+        this.translationService = translationService;
     }
 
     @Transactional(readOnly = true)
     public List<CategoryResponse> getAll() {
         List<Category> categories = categoryRepository.findAll(Sort.by("name"));
         Map<Long, Long> counts = countProductsWithSubcategories(categories);
+        CategoryTexts texts = translationService.categories();
         return categories.stream()
-                .map(c -> toResponse(c, counts.getOrDefault(c.getId(), 0L)))
+                .map(c -> toResponse(c, counts.getOrDefault(c.getId(), 0L), texts))
                 .toList();
     }
 
@@ -50,7 +56,7 @@ public class CategoryService {
         Category root = categories.stream()
                 .filter(c -> c.getSlug().equals(slug))
                 .findFirst()
-                .orElseThrow(() -> new NotFoundException("Category not found: " + slug));
+                .orElseThrow(() -> new NotFoundException("error.category.notFound"));
 
         Map<Long, List<Long>> childrenByParent = new HashMap<>();
         for (Category c : categories) {
@@ -89,7 +95,7 @@ public class CategoryService {
     public CategoryResponse create(CategoryRequest request) {
         String name = request.name().trim();
         if (categoryRepository.existsByNameIgnoreCase(name)) {
-            throw new ConflictException("Category already exists: " + name);
+            throw new ConflictException("error.category.exists", name);
         }
 
         Category category = new Category();
@@ -98,7 +104,7 @@ public class CategoryService {
         category.setDescription(request.description());
         category.setParent(findParent(request.parentId()));
 
-        return toResponse(categoryRepository.save(category), 0L);
+        return toResponse(categoryRepository.save(category), 0L, translationService.categories());
     }
 
     @Transactional
@@ -107,38 +113,38 @@ public class CategoryService {
 
         String name = request.name().trim();
         if (categoryRepository.existsByNameIgnoreCaseAndIdNot(name, id)) {
-            throw new ConflictException("Category already exists: " + name);
+            throw new ConflictException("error.category.exists", name);
         }
 
         Category parent = findParent(request.parentId());
         if (isSelfOrDescendant(parent, id)) {
-            throw new IllegalArgumentException("Category can't be moved inside itself");
+            throw new BadRequestException("error.category.cycle");
         }
 
         category.setName(name);
         category.setDescription(request.description());
         category.setParent(parent);
         long count = countProductsWithSubcategories(categoryRepository.findAll()).getOrDefault(id, 0L);
-        return toResponse(category, count);
+        return toResponse(category, count, translationService.categories());
     }
 
     @Transactional
     public void delete(Long id) {
         if (!categoryRepository.existsById(id)) {
-            throw new NotFoundException("Category not found: " + id);
+            throw new NotFoundException("error.category.notFound");
         }
         if (categoryRepository.existsByParentId(id)) {
-            throw new ConflictException("Category has subcategories and can't be deleted");
+            throw new ConflictException("error.category.hasChildren");
         }
         if (productRepository.existsByCategoryId(id)) {
-            throw new ConflictException("Category has products and can't be deleted");
+            throw new ConflictException("error.category.hasProducts");
         }
         categoryRepository.deleteById(id);
     }
 
     private Category findById(Long id) {
         return categoryRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Category not found: " + id));
+                .orElseThrow(() -> new NotFoundException("error.category.notFound"));
     }
 
     private Category findParent(Long parentId) {
@@ -155,12 +161,12 @@ public class CategoryService {
         return false;
     }
 
-    private CategoryResponse toResponse(Category category, long productCount) {
+    private CategoryResponse toResponse(Category category, long productCount, CategoryTexts texts) {
         return new CategoryResponse(
                 category.getId(),
-                category.getName(),
+                texts.name(category),
                 category.getSlug(),
-                category.getDescription(),
+                texts.description(category),
                 category.getParent() != null ? category.getParent().getId() : null,
                 productCount
         );

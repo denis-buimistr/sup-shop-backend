@@ -2,10 +2,15 @@ package com.supshop.sup_shop_backend.repository;
 
 import com.supshop.sup_shop_backend.model.Brand;
 import com.supshop.sup_shop_backend.model.Category;
+import com.supshop.sup_shop_backend.model.CategoryTranslation;
 import com.supshop.sup_shop_backend.model.Product;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
@@ -66,10 +71,22 @@ public final class ProductSpecifications {
                     .map(pattern -> cb.or(
                             cb.like(cb.lower(root.get("name")), pattern, '\\'),
                             cb.like(cb.lower(brand.get("name")), pattern, '\\'),
-                            cb.like(cb.lower(category.get("name")), pattern, '\\')))
+                            cb.like(cb.lower(category.get("name")), pattern, '\\'),
+                            translatedCategoryMatches(query, cb, category, pattern)))
                     .toArray(Predicate[]::new);
             return cb.and(words);
         };
+    }
+
+    // ищу и по переводам названия категории, чтобы «вёсла» или «vâsle» находили вёсла
+    private static Predicate translatedCategoryMatches(CriteriaQuery<?> query, CriteriaBuilder cb,
+                                                       Join<Product, Category> category, String pattern) {
+        Subquery<Long> sub = query.subquery(Long.class);
+        Root<CategoryTranslation> t = sub.from(CategoryTranslation.class);
+        sub.select(t.get("categoryId")).where(
+                cb.equal(t.get("categoryId"), category.get("id")),
+                cb.like(cb.lower(t.get("name")), pattern, '\\'));
+        return cb.exists(sub);
     }
 
     // % и _ экранирую, иначе пользователь сам напишет шаблон для LIKE

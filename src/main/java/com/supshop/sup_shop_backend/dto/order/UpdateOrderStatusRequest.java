@@ -4,7 +4,7 @@ import com.supshop.sup_shop_backend.model.Order;
 import jakarta.validation.constraints.NotNull;
 
 public record UpdateOrderStatusRequest (
-       @NotNull(message = "Статус обязателен")
+       @NotNull(message = "{order.status.required}")
        Order.Status status
 ){}
 

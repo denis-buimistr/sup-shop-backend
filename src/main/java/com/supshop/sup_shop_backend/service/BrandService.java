@@ -35,7 +35,7 @@ public class BrandService {
         String name = request.name().trim();
 
         if (brandRepository.existsByNameIgnoreCase(name)) {
-            throw new ConflictException("Brand already exists: " + name);
+            throw new ConflictException("error.brand.exists", name);
         }
 
         Brand brand = new Brand();
@@ -48,11 +48,11 @@ public class BrandService {
     @Transactional
     public BrandResponse update(Long id, BrandRequest request) {
         Brand brand = brandRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Brand not found: " + id));
+                .orElseThrow(() -> new NotFoundException("error.brand.notFound"));
 
         String name = request.name().trim();
         if (brandRepository.existsByNameIgnoreCaseAndIdNot(name, id)) {
-            throw new ConflictException("Brand already exists: " + name);
+            throw new ConflictException("error.brand.exists", name);
         }
 
         // save() не нужен: в транзакции Hibernate сам заметит изменения и сделает UPDATE
@@ -64,11 +64,11 @@ public class BrandService {
     @Transactional
     public void delete(Long id) {
         if (!brandRepository.existsById(id)) {
-            throw new NotFoundException("Brand not found: " + id);
+            throw new NotFoundException("error.brand.notFound");
         }
         // без этой проверки упадём на внешнем ключе products.brand_id и отдадим 500
         if (productRepository.existsByBrandId(id)) {
-            throw new ConflictException("Brand has products and can't be deleted");
+            throw new ConflictException("error.brand.hasProducts");
         }
         brandRepository.deleteById(id);
     }

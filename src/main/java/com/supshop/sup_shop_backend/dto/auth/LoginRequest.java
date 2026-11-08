@@ -4,10 +4,10 @@ import jakarta.validation.constraints.NotBlank;
 
 public record LoginRequest (
 
-        @NotBlank(message = "Имя пользователя обязательно")
+        @NotBlank(message = "{login.username.required}")
         String username,
 
-        @NotBlank(message = "Пароль обязателен")
+        @NotBlank(message = "{login.password.required}")
         String password
 ) {}
 

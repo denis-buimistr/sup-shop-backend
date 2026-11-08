@@ -6,6 +6,7 @@ import com.supshop.sup_shop_backend.model.CartItem;
 import com.supshop.sup_shop_backend.model.Product;
 import com.supshop.sup_shop_backend.model.User;
 import com.supshop.sup_shop_backend.repository.*;
+import com.supshop.sup_shop_backend.exception.BadRequestException;
 import com.supshop.sup_shop_backend.exception.NotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,7 +49,7 @@ public class CartService {
                                     Integer quantity) {
 
         if (quantity < 1) {
-            throw new IllegalArgumentException("Количество должно быть больше нуля");
+            throw new BadRequestException("error.cart.quantityPositive");
         }
 
         User user = getUserByUsername(username);
@@ -60,21 +61,17 @@ public class CartService {
 
 
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new NotFoundException(
-                        "Товар не найден: " + productId));
+                .orElseThrow(() -> new NotFoundException("error.product.notFound"));
 
 
         if (!"ACTIVE".equals(product.getStatus())) {
-            throw new IllegalArgumentException(
-                    "Товар недоступен для заказа: " + product.getName());
+            throw new BadRequestException("error.product.unavailable", product.getName());
         }
 
         int alreadyInCart = (item == null) ? 0 : item.getQuantity();
 
         if (product.getQuantity() < alreadyInCart + quantity) {
-            throw new IllegalArgumentException(
-                    "Недостаточно товаров на складе. Доступно: " + product.getQuantity()
-                            + ", в корзине уже: " + alreadyInCart);
+            throw new BadRequestException("error.stock.notEnoughInCart", product.getQuantity(), alreadyInCart);
 
         }
 
@@ -95,13 +92,11 @@ public class CartService {
     public void removeItem(String username, Long productId) {
         User user = getUserByUsername(username);
         Cart cart = cartRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new NotFoundException(
-                        "Корзина не найдена"));
+                .orElseThrow(() -> new NotFoundException("error.cart.notFound"));
 
         CartItem item = cartItemRepository
                 .findByCartIdAndProductId(cart.getId(), productId)
-                .orElseThrow(() -> new NotFoundException(
-                        "Товар не найден в корзине"));
+                .orElseThrow(() -> new NotFoundException("error.cart.itemNotFound"));
 
         cartItemRepository.delete(item);
     }
@@ -112,13 +107,11 @@ public class CartService {
                                            Integer quantity) {
         User user = getUserByUsername(username);
         Cart cart = cartRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new NotFoundException(
-                        "Корзина не найдена"));
+                .orElseThrow(() -> new NotFoundException("error.cart.notFound"));
 
         CartItem item = cartItemRepository
                 .findByCartIdAndProductId(cart.getId(), productId)
-                .orElseThrow(() -> new NotFoundException(
-                        "Товар не найден в корзине"));
+                .orElseThrow(() -> new NotFoundException("error.cart.itemNotFound"));
 
         if (quantity <= 0) {
             cartItemRepository.delete(item);
@@ -127,13 +120,10 @@ public class CartService {
 
         Product product = productRepository
                 .findById(item.getProduct().getId())
-                .orElseThrow(() -> new NotFoundException(
-                        "Товар не найден"));
+                .orElseThrow(() -> new NotFoundException("error.product.notFound"));
 
         if (product.getQuantity() < quantity) {
-            throw new IllegalArgumentException(
-                    "Недостаточно товара на складе. Доступно: "
-                            + product.getQuantity());
+            throw new BadRequestException("error.stock.available", product.getQuantity());
         }
 
         item.setQuantity(quantity);
@@ -151,14 +141,13 @@ public class CartService {
 
     private User getUserByUsername(String username) {
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new NotFoundException(
-                        "Пользователь не найден: " + username));
+                .orElseThrow(() -> new NotFoundException("error.user.notFound"));
     }
 
     private CartItemResponse toResponse(CartItem item) {
         Product p = productRepository
                 .findById(item.getProduct().getId())
-                .orElseThrow(() -> new NotFoundException("Товар не найден"));
+                .orElseThrow(() -> new NotFoundException("error.product.notFound"));
         return new CartItemResponse(
                 p.getId(),
                 p.getName(),

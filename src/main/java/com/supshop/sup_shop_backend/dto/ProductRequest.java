@@ -4,21 +4,21 @@ import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 
 public record ProductRequest(
-        @NotBlank(message = "Название товара обязательно")
-        @Size(max = 200, message = "Название: максимум 200 символов")
+        @NotBlank(message = "{product.name.required}")
+        @Size(max = 200, message = "{product.name.size}")
         String name,
 
         String description,
 
-        @NotNull(message = "Цена обязательна")
-        @DecimalMin(value = "0.0", message = "Цена не может быть отрицательной")
+        @NotNull(message = "{product.price.required}")
+        @DecimalMin(value = "0.0", message = "{product.price.min}")
         BigDecimal price,
 
         // старая цена, если товар со скидкой; должна быть больше текущей
         BigDecimal compareAtPrice,
 
-        @NotNull(message = "Количество обязательно")
-        @Min(value = 0, message = "Количество не может быть отрицательным")
+        @NotNull(message = "{product.quantity.required}")
+        @Min(value = 0, message = "{product.quantity.min}")
         Integer quantity,
 
         Long brandId,

@@ -1,5 +1,6 @@
 package com.supshop.sup_shop_backend.service;
 
+import com.supshop.sup_shop_backend.exception.BadRequestException;
 import com.supshop.sup_shop_backend.dto.auth.AuthResponse;
 import com.supshop.sup_shop_backend.dto.auth.LoginRequest;
 import com.supshop.sup_shop_backend.dto.auth.RegisterRequest;
@@ -43,10 +44,10 @@ public class AuthService {
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         if(userRepository.existsByUsername(request.username())) {
-            throw new IllegalArgumentException("Пользователь с таким именем уже существует");
+            throw new BadRequestException("error.auth.usernameTaken");
         }
         if(userRepository.existsByEmail(request.email())) {
-            throw new IllegalArgumentException("Email уже используется");
+            throw new BadRequestException("error.auth.emailTaken");
         }
 
         Role userRole = roleRepository.findByName("ROLE_USER")
