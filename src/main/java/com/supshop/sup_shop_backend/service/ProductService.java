@@ -78,6 +78,9 @@ public class ProductService {
         if (filter.q() != null && !filter.q().isBlank()) {
             conditions.add(matchesText(filter.q().trim()));
         }
+        if (filter.id() != null && !filter.id().isEmpty()) {
+            conditions.add(hasIds(filter.id()));
+        }
 
         return productRepository.findAll(Specification.allOf(conditions), pageable).map(this::toResponse);
     }
