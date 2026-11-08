@@ -1,7 +1,9 @@
 package com.supshop.sup_shop_backend.controller;
 
 import com.supshop.sup_shop_backend.dto.ProductImageResponse;
+import com.supshop.sup_shop_backend.dto.ReorderImagesRequest;
 import com.supshop.sup_shop_backend.service.ProductImageService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -35,6 +37,13 @@ public class ProductImageController {
                 productImageService.upload(productId, file, primary);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @PutMapping("/order")
+    public ResponseEntity<List<ProductImageResponse>> reorder(
+            @PathVariable Long productId,
+            @Valid @RequestBody ReorderImagesRequest request) {
+        return ResponseEntity.ok(productImageService.reorder(productId, request.imageIds()));
     }
 
     @DeleteMapping("/{imageId}")

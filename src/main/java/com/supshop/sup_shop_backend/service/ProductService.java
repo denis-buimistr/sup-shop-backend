@@ -5,6 +5,7 @@ import com.supshop.sup_shop_backend.dto.ProductImageResponse;
 import com.supshop.sup_shop_backend.model.Product;
 import com.supshop.sup_shop_backend.model.Brand;
 import com.supshop.sup_shop_backend.model.Category;
+import com.supshop.sup_shop_backend.dto.ProductFilter;
 import com.supshop.sup_shop_backend.dto.ProductRequest;
 import com.supshop.sup_shop_backend.dto.ProductResponse;
 import com.supshop.sup_shop_backend.repository.*;
@@ -13,11 +14,15 @@ import org.springframework.stereotype.Service;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.supshop.sup_shop_backend.util.SlugUtil;
 
+import java.util.ArrayList;
 import java.util.List;
+
+import static com.supshop.sup_shop_backend.repository.ProductSpecifications.*;
 
 @Service
 public class ProductService {
@@ -26,37 +31,55 @@ public class ProductService {
     private final BrandRepository brandRepository;
     private final ProductImageRepository productImageRepository;
     private final ProductAttributeRepository productAttributeRepository;
-    private static final String ACTIVE = "ACTIVE";
+    private final CategoryService categoryService;
 
 
     public ProductService(ProductRepository productRepository,
                           CategoryRepository categoryRepository,
                           BrandRepository brandRepository,
                           ProductImageRepository productImageRepository,
-                          ProductAttributeRepository productAttributeRepository) {
+                          ProductAttributeRepository productAttributeRepository,
+                          CategoryService categoryService) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.brandRepository = brandRepository;
         this.productImageRepository = productImageRepository;
         this.productAttributeRepository = productAttributeRepository;
+        this.categoryService = categoryService;
     }
 
     @Transactional(readOnly = true)
+    public Page<ProductResponse> findAll(ProductFilter filter, Pageable pageable) {
+        // в каталоге только товары в продаже; остальные условия добавляем, если фильтр задан
+        List<Specification<Product>> conditions = new ArrayList<>();
+        conditions.add(isActive());
 
-    public Page<ProductResponse> findAll(Long categoryId, Long brandId, String boardType, Pageable pageable) {
-        Page<Product> page;
-
-        if (categoryId != null) {
-            page = productRepository.findByCategoryIdAndStatus(categoryId, ACTIVE ,pageable);
-        } else if (brandId != null) {
-            page = productRepository.findByBrandIdAndStatus(brandId, ACTIVE, pageable);
-        } else if (boardType != null) {
-            page = productRepository.findByBoardTypeAndStatus(Product.BoardType.valueOf(boardType), ACTIVE ,pageable);
-        } else {
-            page = productRepository.findByStatus(ACTIVE, pageable);
+        if (filter.category() != null && !filter.category().isBlank()) {
+            conditions.add(inCategories(categoryService.findSelfAndDescendantIds(filter.category())));
+        }
+        if (filter.brand() != null && !filter.brand().isEmpty()) {
+            conditions.add(hasBrands(filter.brand()));
+        }
+        if (filter.minPrice() != null) {
+            conditions.add(priceFrom(filter.minPrice()));
+        }
+        if (filter.maxPrice() != null) {
+            conditions.add(priceTo(filter.maxPrice()));
+        }
+        if (Boolean.TRUE.equals(filter.inStock())) {
+            conditions.add(inStock());
+        }
+        if (Boolean.TRUE.equals(filter.onSale())) {
+            conditions.add(onSale());
+        }
+        if (filter.boardType() != null && !filter.boardType().isBlank()) {
+            conditions.add(hasBoardType(Product.BoardType.valueOf(filter.boardType())));
+        }
+        if (filter.q() != null && !filter.q().isBlank()) {
+            conditions.add(matchesText(filter.q().trim()));
         }
 
-        return page.map(this::toResponse);
+        return productRepository.findAll(Specification.allOf(conditions), pageable).map(this::toResponse);
     }
 
     @Transactional(readOnly = true)
@@ -81,6 +104,7 @@ public class ProductService {
         product.setSlug(SlugUtil.uniqueSlug(request.name(), "product", productRepository::existsBySlug));
         product.setDescription(request.description());
         product.setPrice(request.price());
+        product.setCompareAtPrice(request.compareAtPrice());
         product.setQuantity(request.quantity());
 
         if(request.categoryId() != null) {
@@ -112,6 +136,7 @@ public class ProductService {
         product.setName(request.name());
         product.setDescription(request.description());
         product.setPrice(request.price());
+        product.setCompareAtPrice(request.compareAtPrice());
         product.setQuantity(request.quantity());
 
         if(request.categoryId() != null) {
@@ -151,7 +176,7 @@ public class ProductService {
 
     private ProductResponse toResponse(Product p) {
         List<ProductImageResponse> images = productImageRepository
-                .findByProductId(p.getId())
+                .findByProductIdOrderBySortOrderAsc(p.getId())
                 .stream()
                 .map(img -> new ProductImageResponse(
                         img.getId(),
@@ -174,6 +199,7 @@ public class ProductService {
                 p.getSlug(),
                 p.getDescription(),
                 p.getPrice(),
+                p.getCompareAtPrice(),
                 p.getQuantity(),
                 p.getBrand() != null ? p.getBrand().getName() : null,
                 p.getCategory() != null ? p.getCategory().getName() : null,

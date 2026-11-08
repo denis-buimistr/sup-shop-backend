@@ -14,6 +14,9 @@ public record ProductRequest(
         @DecimalMin(value = "0.0", message = "Цена не может быть отрицательной")
         BigDecimal price,
 
+        // старая цена, если товар со скидкой; должна быть больше текущей
+        BigDecimal compareAtPrice,
+
         @NotNull(message = "Количество обязательно")
         @Min(value = 0, message = "Количество не может быть отрицательным")
         Integer quantity,
@@ -21,4 +24,9 @@ public record ProductRequest(
         Long brandId,
         Long categoryId,
         String boardType
-) {}
+) {
+    @AssertTrue(message = "{product.compareAtPrice.greater}")
+    public boolean isCompareAtPriceValid() {
+        return compareAtPrice == null || price == null || compareAtPrice.compareTo(price) > 0;
+    }
+}
