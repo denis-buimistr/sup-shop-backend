@@ -75,6 +75,9 @@ public class ProductService {
         if (filter.boardType() != null && !filter.boardType().isBlank()) {
             conditions.add(hasBoardType(Product.BoardType.valueOf(filter.boardType())));
         }
+        if (filter.q() != null && !filter.q().isBlank()) {
+            conditions.add(matchesText(filter.q().trim()));
+        }
 
         return productRepository.findAll(Specification.allOf(conditions), pageable).map(this::toResponse);
     }
@@ -173,7 +176,7 @@ public class ProductService {
 
     private ProductResponse toResponse(Product p) {
         List<ProductImageResponse> images = productImageRepository
-                .findByProductId(p.getId())
+                .findByProductIdOrderBySortOrderAsc(p.getId())
                 .stream()
                 .map(img -> new ProductImageResponse(
                         img.getId(),

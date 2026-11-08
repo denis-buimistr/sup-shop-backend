@@ -5,12 +5,17 @@ import com.supshop.sup_shop_backend.model.Product;
 import com.supshop.sup_shop_backend.model.ProductImage;
 import com.supshop.sup_shop_backend.repository.ProductImageRepository;
 import com.supshop.sup_shop_backend.repository.ProductRepository;
+import com.supshop.sup_shop_backend.exception.ConflictException;
 import com.supshop.sup_shop_backend.exception.NotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class ProductImageService {
@@ -31,7 +36,7 @@ public class ProductImageService {
     public List<ProductImageResponse> findByProduct(Long productId) {
         ensureProductExists(productId);
 
-        return productImageRepository.findByProductId(productId)
+        return productImageRepository.findByProductIdOrderBySortOrderAsc(productId)
                 .stream()
                 .map(this::toResponse)
                 .toList();
@@ -74,10 +79,40 @@ public class ProductImageService {
 
         s3Service.deleteFile(extractKey(image.getImageUrl()));
         productImageRepository.delete(image);
+
+        // если удалили главное, главным становится следующее, и номера идут без дырок
+        applyOrder(productImageRepository.findByProductIdOrderBySortOrderAsc(productId).stream()
+                .filter(img -> !img.getId().equals(imageId))
+                .toList());
+    }
+
+    // порядок приходит из админки после перетаскивания, первое фото становится главным
+    @Transactional
+    public List<ProductImageResponse> reorder(Long productId, List<Long> imageIds) {
+        ensureProductExists(productId);
+        Map<Long, ProductImage> byId = productImageRepository.findByProductIdOrderBySortOrderAsc(productId).stream()
+                .collect(Collectors.toMap(ProductImage::getId, Function.identity()));
+
+        // список должен совпадать с фото в БД один в один, иначе админка показывает старое состояние
+        if (imageIds.size() != byId.size() || !byId.keySet().equals(new HashSet<>(imageIds))) {
+            throw new ConflictException("Photos of this product have changed, reload the page");
+        }
+
+        List<ProductImage> ordered = imageIds.stream().map(byId::get).toList();
+        applyOrder(ordered);
+        return ordered.stream().map(this::toResponse).toList();
+    }
+
+    // сущности внутри транзакции, поэтому save не нужен, Hibernate сам запишет изменения при коммите
+    private void applyOrder(List<ProductImage> images) {
+        for (int i = 0; i < images.size(); i++) {
+            images.get(i).setSortOrder(i);
+            images.get(i).setPrimary(i == 0);
+        }
     }
 
     private void demoteExistingPrimary(Long productId) {
-        productImageRepository.findByProductId(productId).stream()
+        productImageRepository.findByProductIdOrderBySortOrderAsc(productId).stream()
                 .filter(ProductImage::isPrimary)
                 .forEach(img -> {
                     img.setPrimary(false);
@@ -86,7 +121,7 @@ public class ProductImageService {
     }
 
     private int nextSortOrder(Long productId) {
-        return productImageRepository.findByProductId(productId).size();
+        return productImageRepository.findByProductIdOrderBySortOrderAsc(productId).size();
     }
 
     private void ensureProductExists(Long productId) {
