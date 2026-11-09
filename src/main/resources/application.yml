@@ -45,4 +45,14 @@ aws:
     bucket: ${AWS_S3_BUCKET:sup-shop-images-denis-2026}
     region: ${AWS_S3_REGION:eu-north-1}
 
+management:
+  endpoints:
+    web:
+      exposure:
+        # наружу только health, остальное (env, beans, metrics) выдаёт внутренности приложения
+        include: health
+  endpoint:
+    health:
+      # подробности (какая база, сколько места на диске) никому не показываю, только UP или DOWN
+      show-details: never
 

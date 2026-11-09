@@ -22,15 +22,18 @@ public class OrderService {
     private final CartItemRepository cartItemRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
+    private final ProductImageRepository productImageRepository;
     private final BigDecimal freeDeliveryFrom;
 
     public OrderService(OrderRepository orderRepository, CartRepository cartRepository, CartItemRepository cartItemRepository, ProductRepository productRepository, UserRepository userRepository,
+                        ProductImageRepository productImageRepository,
                         @Value("${app.shop.free-delivery-from}") BigDecimal freeDeliveryFrom) {
         this.orderRepository = orderRepository;
         this.cartRepository = cartRepository;
         this.cartItemRepository = cartItemRepository;
         this.productRepository = productRepository;
         this.userRepository = userRepository;
+        this.productImageRepository = productImageRepository;
         this.freeDeliveryFrom = freeDeliveryFrom;
     }
 
@@ -159,11 +162,17 @@ public class OrderService {
                 order.getCreatedAt());
     }
 
+    // название и цена в заказе — снимок на момент покупки, а фото беру текущее главное у товара
     private OrderItemResponse toItemResponse(OrderItem item) {
+        String imageUrl = productImageRepository
+                .findFirstByProductIdOrderByPrimaryDescSortOrderAsc(item.getProduct().getId())
+                .map(ProductImage::getImageUrl)
+                .orElse(null);
         return new OrderItemResponse(
                 item.getId(),
                 item.getProduct().getId(),
                 item.getProductName(),
+                imageUrl,
                 item.getQuantity(),
                 item.getPriceAtPurchase());
     }

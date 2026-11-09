@@ -118,6 +118,11 @@
 			<artifactId>s3</artifactId>
 			<version>2.29.52</version>
 		</dependency>
+		<!-- /actuator/health: Docker и AWS по нему понимают, что приложение живое -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
 	</dependencies>
 
 	<build>
