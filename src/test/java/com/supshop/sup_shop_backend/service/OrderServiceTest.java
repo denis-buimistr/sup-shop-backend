@@ -10,12 +10,14 @@ import com.supshop.sup_shop_backend.model.DeliveryMethod;
 import com.supshop.sup_shop_backend.model.Order;
 import com.supshop.sup_shop_backend.model.OrderItem;
 import com.supshop.sup_shop_backend.model.PaymentMethod;
+import com.supshop.sup_shop_backend.model.ProductImage;
 import com.supshop.sup_shop_backend.model.Product;
 import com.supshop.sup_shop_backend.model.User;
 import com.supshop.sup_shop_backend.repository.CartItemRepository;
 import com.supshop.sup_shop_backend.repository.CartRepository;
 import com.supshop.sup_shop_backend.repository.OrderRepository;
 import com.supshop.sup_shop_backend.repository.ProductRepository;
+import com.supshop.sup_shop_backend.repository.ProductImageRepository;
 import com.supshop.sup_shop_backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -47,6 +49,7 @@ class OrderServiceTest {
     @Mock private CartItemRepository cartItemRepository;
     @Mock private ProductRepository productRepository;
     @Mock private UserRepository userRepository;
+    @Mock private ProductImageRepository productImageRepository;
 
     private OrderService orderService;
     private User user;
@@ -55,7 +58,7 @@ class OrderServiceTest {
     @BeforeEach
     void setUp() {
         orderService = new OrderService(orderRepository, cartRepository, cartItemRepository,
-                productRepository, userRepository, FREE_DELIVERY_FROM);
+                productRepository, userRepository, productImageRepository, FREE_DELIVERY_FROM);
 
         user = new User();
         user.setId(1L);
@@ -87,6 +90,21 @@ class OrderServiceTest {
             verify(productRepository).decreaseStock(1L, 1);
             verify(productRepository).decreaseStock(2L, 2);
             verify(cartItemRepository).deleteByCartId(10L);
+        }
+
+        // фото в заказе — текущее главное фото товара, без фото поле просто пустое
+        @Test
+        void orderItemShowsMainPhoto() {
+            Product board = product(1L, "Red Paddle Ride", "15990.00", 5);
+            givenCart(item(board, 1));
+            givenStockAndSaveSucceed();
+            ProductImage photo = new ProductImage();
+            photo.setImageUrl("https://bucket.s3.amazonaws.com/products/1/front.jpg");
+            when(productImageRepository.findFirstByProductIdOrderByPrimaryDescSortOrderAsc(1L)).thenReturn(Optional.of(photo));
+
+            OrderResponse order = orderService.checkout("ivan", request(DeliveryMethod.PICKUP));
+
+            assertThat(order.items().get(0).imageUrl()).isEqualTo("https://bucket.s3.amazonaws.com/products/1/front.jpg");
         }
 
         @Test
