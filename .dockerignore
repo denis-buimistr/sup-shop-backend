@@ -1,0 +1,7 @@
+target/
+.git/
+.idea/
+*.iml
+konspekt/
+CLAUDE.md
+.env

@@ -6,3 +6,9 @@ logging:
   level:
     com.supshop: DEBUG
     org.springframework.security: DEBUG
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
