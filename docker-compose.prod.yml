@@ -1,0 +1,38 @@
+# прод на EC2: образы беру готовые из GHCR, база в RDS, в S3 хожу через роль сервера
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  backend:
+    image: ghcr.io/denis-buimistr/sup-shop-backend:${BACKEND_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://${DB_HOST:?}:5432/${DB_NAME:?}
+      DB_USERNAME: ${DB_USERNAME:?}
+      DB_PASSWORD: ${DB_PASSWORD:?}
+      JWT_SECRET: ${JWT_SECRET:?}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:?}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?}
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 30s
+    logging: *logging
+
+  frontend:
+    image: ghcr.io/denis-buimistr/sup-shop-frontend:${FRONTEND_TAG:-latest}
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    logging: *logging

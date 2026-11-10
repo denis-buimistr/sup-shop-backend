@@ -4,6 +4,8 @@ import com.supshop.sup_shop_backend.dto.ProductFilter;
 import com.supshop.sup_shop_backend.dto.ProductRequest;
 import com.supshop.sup_shop_backend.dto.ProductResponse;
 import com.supshop.sup_shop_backend.exception.NotFoundException;
+import com.supshop.sup_shop_backend.security.CustomUserDetailsService;
+import com.supshop.sup_shop_backend.security.JwtService;
 import com.supshop.sup_shop_backend.service.ProductService;
 import com.supshop.sup_shop_backend.service.TranslationService;
 import com.supshop.sup_shop_backend.support.WithAppSecurity;
@@ -14,6 +16,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -44,6 +47,9 @@ class ProductControllerTest {
     @Autowired private MockMvc mockMvc;
     @MockitoBean private ProductService productService;
     @MockitoBean private TranslationService translationService;
+    // моки из @WithAppSecurity, тут они нужны, чтобы изобразить токен удалённого юзера
+    @Autowired private JwtService jwtService;
+    @Autowired private CustomUserDetailsService userDetailsService;
 
     @Test
     void catalogIsPublicAndPassesFiltersToService() throws Exception {
@@ -133,6 +139,21 @@ class ProductControllerTest {
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Prețul vechi trebuie să fie mai mare decât cel actual"));
+    }
+
+    // юзера удалили, а токен остался в браузере. раньше фильтр падал и весь сайт отдавал 500
+    @Test
+    void tokenOfDeletedUserActsAsGuest() throws Exception {
+        when(jwtService.extractUsername("old-token")).thenReturn("ghost");
+        when(userDetailsService.loadUserByUsername("ghost")).thenThrow(new UsernameNotFoundException("ghost"));
+        when(productService.findAll(any(), any())).thenReturn(new PageImpl<>(List.of(), Pageable.ofSize(20), 0));
+
+        mockMvc.perform(get("/api/products").header("Authorization", "Bearer old-token"))
+                .andExpect(status().isOk());
+        // а на закрытом эндпоинте 401, по нему фронт сам разлогинит
+        mockMvc.perform(post("/api/products").header("Authorization", "Bearer old-token")
+                        .contentType(MediaType.APPLICATION_JSON).content(VALID_PRODUCT))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
