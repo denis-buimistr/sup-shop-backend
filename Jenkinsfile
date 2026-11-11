@@ -10,7 +10,7 @@ pipeline {
 
     environment {
         IMAGE = 'ghcr.io/denis-buimistr/sup-shop-backend'
-        EC2_HOST = '16.192.196.171'
+        EC2_HOST = '16.192.245.134'
     }
 
     stages {
