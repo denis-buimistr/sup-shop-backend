@@ -32,6 +32,11 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
+      - "443:443"
+    volumes:
+      # https-сервер и сертификаты есть только на проде, в образ их не кладу
+      - ./nginx-ssl.conf:/etc/nginx/conf.d/ssl.conf:ro
+      - ./certs:/etc/nginx/certs:ro
     depends_on:
       backend:
         condition: service_healthy
