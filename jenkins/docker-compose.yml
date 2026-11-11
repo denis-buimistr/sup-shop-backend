@@ -1,0 +1,18 @@
+# jenkins у меня на маке, на ec2 ему не хватит памяти
+services:
+  jenkins:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8081:8080"
+    volumes:
+      - jenkins-home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      # тесты из jenkins поднимают postgres через testcontainers на докере мака, ходят к нему через этот адрес
+      TESTCONTAINERS_HOST_OVERRIDE: host.docker.internal
+    group_add:
+      - "0"
+
+volumes:
+  jenkins-home:
