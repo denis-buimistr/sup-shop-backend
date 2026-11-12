@@ -4,6 +4,7 @@ import com.supshop.sup_shop_backend.model.Role;
 import com.supshop.sup_shop_backend.model.User;
 import com.supshop.sup_shop_backend.repository.RoleRepository;
 import com.supshop.sup_shop_backend.repository.UserRepository;
+import com.supshop.sup_shop_backend.util.EmailUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -51,7 +52,7 @@ public class AdminInitializer implements ApplicationRunner {
         if (userRepository.existsByRoles_Name(ADMIN_ROLE)) {
             return;
         }
-        if (userRepository.existsByUsername(username) || userRepository.existsByEmail(email)) {
+        if (userRepository.existsByUsername(username) || userRepository.existsByEmailIgnoreCase(email)) {
             log.warn("Admin not created: user '{}' or email '{}' already exists", username, email);
             return;
         }
@@ -61,7 +62,7 @@ public class AdminInitializer implements ApplicationRunner {
 
         User admin = new User();
         admin.setUsername(username);
-        admin.setEmail(email);
+        admin.setEmail(EmailUtil.normalize(email));
         admin.setPasswordHash(passwordEncoder.encode(password));
         admin.setRoles(Set.of(adminRole));
         userRepository.save(admin);

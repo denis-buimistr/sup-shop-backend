@@ -2,12 +2,15 @@ package com.supshop.sup_shop_backend.dto.auth;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record RegisterRequest (
 
         @NotBlank(message = "{register.username.required}")
         @Size(min = 3, max = 50, message = "{register.username.size}")
+        // без @, иначе логин можно спутать с чужой почтой на входе
+        @Pattern(regexp = "^[A-Za-z0-9._-]+$", message = "{register.username.pattern}")
         String username,
 
         @NotBlank(message = "{register.email.required}")

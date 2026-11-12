@@ -1,5 +1,6 @@
 package com.supshop.sup_shop_backend.service;
 
+import com.supshop.sup_shop_backend.util.EmailUtil;
 import com.supshop.sup_shop_backend.dto.UserResponse;
 import com.supshop.sup_shop_backend.model.User;
 import com.supshop.sup_shop_backend.repository.UserRepository;
@@ -33,8 +34,9 @@ public class UserService {
                                       String email) {
         User user = getUser(username);
 
-        if (email != null && !email.equals(user.getEmail())) {
-            if (userRepository.existsByEmail(email)) {
+        email = EmailUtil.normalize(email);
+        if (email != null && !email.equalsIgnoreCase(user.getEmail())) {
+            if (userRepository.existsByEmailIgnoreCase(email)) {
                 throw new BadRequestException("error.auth.emailTaken");
             }
             user.setEmail(email);
