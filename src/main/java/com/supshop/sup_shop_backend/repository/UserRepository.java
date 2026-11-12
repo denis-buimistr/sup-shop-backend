@@ -6,8 +6,9 @@ import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByUsername(String username);
-    Optional<User> findByEmail(String email);
+    // почту сравниваю без учёта регистра: Ivan@Mail.md и ivan@mail.md это один ящик
+    Optional<User> findByEmailIgnoreCase(String email);
     boolean existsByUsername(String username);
-    boolean existsByEmail(String email);
+    boolean existsByEmailIgnoreCase(String email);
     boolean existsByRoles_Name(String roleName);
 }

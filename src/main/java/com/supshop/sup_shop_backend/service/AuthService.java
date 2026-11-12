@@ -3,6 +3,7 @@ package com.supshop.sup_shop_backend.service;
 import com.supshop.sup_shop_backend.exception.BadRequestException;
 import com.supshop.sup_shop_backend.dto.auth.AuthResponse;
 import com.supshop.sup_shop_backend.dto.auth.LoginRequest;
+import com.supshop.sup_shop_backend.util.EmailUtil;
 import com.supshop.sup_shop_backend.dto.auth.RegisterRequest;
 import com.supshop.sup_shop_backend.model.Role;
 import com.supshop.sup_shop_backend.model.User;
@@ -46,7 +47,8 @@ public class AuthService {
         if(userRepository.existsByUsername(request.username())) {
             throw new BadRequestException("error.auth.usernameTaken");
         }
-        if(userRepository.existsByEmail(request.email())) {
+        String email = EmailUtil.normalize(request.email());
+        if(userRepository.existsByEmailIgnoreCase(email)) {
             throw new BadRequestException("error.auth.emailTaken");
         }
 
@@ -58,7 +60,7 @@ public class AuthService {
 
         User user = new User();
         user.setUsername(request.username());
-        user.setEmail(request.email());
+        user.setEmail(email);
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setFullName(request.fullName());
         user.setRoles(roles);
