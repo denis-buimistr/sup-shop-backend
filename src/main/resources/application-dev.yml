@@ -12,3 +12,8 @@ springdoc:
     enabled: true
   swagger-ui:
     enabled: true
+
+spring:
+  mail:
+    host: localhost
+    port: 1025

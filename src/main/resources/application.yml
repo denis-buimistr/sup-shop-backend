@@ -39,6 +39,9 @@ app:
     username: ${ADMIN_USERNAME:}
     email: ${ADMIN_EMAIL:}
     password: ${ADMIN_PASSWORD:}
+  mail:
+     # от кого приходят письма, на проде адрес на нашем домене
+    from: ${MAIL_FROM:SUP Shop <no-reply@supshop-md.site>}
 
 aws:
   s3:
@@ -55,4 +58,7 @@ management:
     health:
       # подробности (какая база, сколько места на диске) никому не показываю, только UP или DOWN
       show-details: never
+
+
+
 
