@@ -1,6 +1,7 @@
 app:
   jwt:
     secret: dev-only-secret-not-for-production-min-32-bytes-long
+  frontend-url: http://localhost:5173
 
 logging:
   level:
