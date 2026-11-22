@@ -5,6 +5,8 @@ import com.supshop.sup_shop_backend.model.PasswordResetToken;
 import com.supshop.sup_shop_backend.model.User;
 import com.supshop.sup_shop_backend.repository.PasswordResetTokenRepository;
 import com.supshop.sup_shop_backend.repository.UserRepository;
+import com.supshop.sup_shop_backend.service.email.EmailMessage;
+import com.supshop.sup_shop_backend.service.email.EmailSender;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -46,7 +48,7 @@ class PasswordResetServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private PasswordResetTokenRepository tokenRepository;
     @Mock private PasswordEncoder passwordEncoder;
-    @Mock private EmailService emailService;
+    @Mock private EmailSender emailSender;
     @Mock private MessageSource messageSource;
 
     private PasswordResetService service;
@@ -55,7 +57,7 @@ class PasswordResetServiceTest {
     @BeforeEach
     void setUp() {
         service = new PasswordResetService(userRepository, tokenRepository, passwordEncoder,
-                emailService, messageSource, FRONTEND_URL);
+                emailSender, messageSource, FRONTEND_URL);
         user = new User();
         user.setId(1L);
         user.setEmail("ivan@mail.md");
@@ -79,7 +81,7 @@ class PasswordResetServiceTest {
             service.requestReset("ghost@mail.md");
 
             verify(tokenRepository, never()).save(any());
-            verify(emailService, never()).send(anyString(), anyString(), anyString());
+            verify(emailSender, never()).send(any());
         }
 
         @Test
@@ -90,7 +92,7 @@ class PasswordResetServiceTest {
             service.requestReset("ivan@mail.md");
 
             verify(tokenRepository, never()).save(any());
-            verify(emailService, never()).send(anyString(), anyString(), anyString());
+            verify(emailSender, never()).send(any());
         }
 
         // в базу уходит только хеш, а сам токен только в письме
@@ -196,10 +198,12 @@ class PasswordResetServiceTest {
     }
 
     private String tokenFromSentLink(String expectedPrefix) {
-        ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
-        verify(emailService).send(eq("ivan@mail.md"), eq("Reset"), body.capture());
-        assertThat(body.getValue()).startsWith(expectedPrefix);
-        return body.getValue().substring(expectedPrefix.length());
+        ArgumentCaptor<EmailMessage> sent = ArgumentCaptor.forClass(EmailMessage.class);
+        verify(emailSender).send(sent.capture());
+        assertThat(sent.getValue().to()).isEqualTo("ivan@mail.md");
+        assertThat(sent.getValue().subject()).isEqualTo("Reset");
+        assertThat(sent.getValue().text()).startsWith(expectedPrefix);
+        return sent.getValue().text().substring(expectedPrefix.length());
     }
 
     private static String sha256(String value) {

@@ -47,6 +47,8 @@ aws:
   s3:
     bucket: ${AWS_S3_BUCKET:sup-shop-images-denis-2026}
     region: ${AWS_S3_REGION:eu-north-1}
+  ses:
+    region: ${AWS_SES_REGION:eu-north-1}
 
 management:
   endpoints:

@@ -5,6 +5,8 @@ import com.supshop.sup_shop_backend.model.PasswordResetToken;
 import com.supshop.sup_shop_backend.model.User;
 import com.supshop.sup_shop_backend.repository.PasswordResetTokenRepository;
 import com.supshop.sup_shop_backend.repository.UserRepository;
+import com.supshop.sup_shop_backend.service.email.EmailMessage;
+import com.supshop.sup_shop_backend.service.email.EmailSender;
 import com.supshop.sup_shop_backend.util.ContentLanguage;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
@@ -33,7 +35,7 @@ public class PasswordResetService {
     private final UserRepository userRepository;
     private final PasswordResetTokenRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
-    private final EmailService emailService;
+    private final EmailSender emailSender;
     private final MessageSource messageSource;
     private final String frontendUrl;
     private final SecureRandom random = new SecureRandom();
@@ -41,13 +43,13 @@ public class PasswordResetService {
     public PasswordResetService(UserRepository userRepository,
                                 PasswordResetTokenRepository tokenRepository,
                                 PasswordEncoder passwordEncoder,
-                                EmailService emailService,
+                                EmailSender emailSender,
                                 MessageSource messageSource,
                                 @Value("${app.frontend-url}") String frontendUrl) {
         this.userRepository = userRepository;
         this.tokenRepository = tokenRepository;
         this.passwordEncoder = passwordEncoder;
-        this.emailService = emailService;
+        this.emailSender = emailSender;
         this.messageSource = messageSource;
         this.frontendUrl = frontendUrl;
     }
@@ -94,7 +96,7 @@ public class PasswordResetService {
         String subject = messageSource.getMessage("email.passwordReset.subject", null, locale);
         String body = messageSource.getMessage("email.passwordReset.body",
                 new Object[]{link, TOKEN_LIFETIME.toMinutes()}, locale);
-        emailService.send(email, subject, body);
+        emailSender.send(EmailMessage.plain(email, subject, body));
     }
 
     // 32 случайных байта, это 256 бит, такой токен не подобрать перебором

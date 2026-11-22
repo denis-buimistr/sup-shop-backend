@@ -4,8 +4,9 @@ import com.supshop.sup_shop_backend.dto.auth.LoginRequest;
 import com.supshop.sup_shop_backend.dto.auth.RegisterRequest;
 import com.supshop.sup_shop_backend.exception.BadRequestException;
 import com.supshop.sup_shop_backend.service.AuthService;
-import com.supshop.sup_shop_backend.service.EmailService;
 import com.supshop.sup_shop_backend.service.PasswordResetService;
+import com.supshop.sup_shop_backend.service.email.EmailMessage;
+import com.supshop.sup_shop_backend.service.email.EmailSender;
 import com.supshop.sup_shop_backend.support.AbstractIntegrationTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,8 +24,6 @@ import java.util.UUID;
 import static com.supshop.sup_shop_backend.support.AppExceptionAssert.assertKey;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.verify;
 
@@ -35,7 +34,7 @@ class PasswordResetIntegrationTest extends AbstractIntegrationTest {
     private static final String OLD_PASSWORD = "old-pass-2026";
     private static final String NEW_PASSWORD = "new-pass-2026";
 
-    @MockitoBean private EmailService emailService;
+    @MockitoBean private EmailSender emailSender;
     @Autowired private PasswordResetService passwordResetService;
     @Autowired private AuthService authService;
     @Autowired private JdbcTemplate jdbc;
@@ -110,7 +109,7 @@ class PasswordResetIntegrationTest extends AbstractIntegrationTest {
     void newRequestKillsOlderLink() {
         passwordResetService.requestReset(email);
         String older = tokenFromEmail();
-        clearInvocations(emailService);
+        clearInvocations(emailSender);
         passwordResetService.requestReset(email);
         String newer = tokenFromEmail();
 
@@ -120,8 +119,9 @@ class PasswordResetIntegrationTest extends AbstractIntegrationTest {
     }
 
     private String tokenFromEmail() {
-        ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
-        verify(emailService).send(eq(email), anyString(), body.capture());
-        return body.getValue().replaceAll("(?s).*token=([A-Za-z0-9_-]+).*", "$1");
+        ArgumentCaptor<EmailMessage> sent = ArgumentCaptor.forClass(EmailMessage.class);
+        verify(emailSender).send(sent.capture());
+        assertThat(sent.getValue().to()).isEqualTo(email);
+        return sent.getValue().text().replaceAll("(?s).*token=([A-Za-z0-9_-]+).*", "$1");
     }
 }
