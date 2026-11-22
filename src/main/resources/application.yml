@@ -39,11 +39,16 @@ app:
     username: ${ADMIN_USERNAME:}
     email: ${ADMIN_EMAIL:}
     password: ${ADMIN_PASSWORD:}
+  mail:
+     # от кого приходят письма, на проде адрес на нашем домене
+    from: ${MAIL_FROM:SUP Shop <no-reply@supshop-md.site>}
 
 aws:
   s3:
     bucket: ${AWS_S3_BUCKET:sup-shop-images-denis-2026}
     region: ${AWS_S3_REGION:eu-north-1}
+  ses:
+    region: ${AWS_SES_REGION:eu-north-1}
 
 management:
   endpoints:
@@ -55,4 +60,7 @@ management:
     health:
       # подробности (какая база, сколько места на диске) никому не показываю, только UP или DOWN
       show-details: never
+
+
+
 
