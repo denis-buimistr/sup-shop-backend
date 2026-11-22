@@ -7,6 +7,7 @@ import com.supshop.sup_shop_backend.repository.PasswordResetTokenRepository;
 import com.supshop.sup_shop_backend.repository.UserRepository;
 import com.supshop.sup_shop_backend.service.email.EmailMessage;
 import com.supshop.sup_shop_backend.service.email.EmailSender;
+import com.supshop.sup_shop_backend.service.email.EmailTemplateRenderer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -25,6 +26,7 @@ import java.security.MessageDigest;
 import java.time.LocalDateTime;
 import java.util.HexFormat;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 
 import static com.supshop.sup_shop_backend.support.AppExceptionAssert.assertKey;
@@ -49,6 +51,7 @@ class PasswordResetServiceTest {
     @Mock private PasswordResetTokenRepository tokenRepository;
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private EmailSender emailSender;
+    @Mock private EmailTemplateRenderer templates;
     @Mock private MessageSource messageSource;
 
     private PasswordResetService service;
@@ -57,7 +60,7 @@ class PasswordResetServiceTest {
     @BeforeEach
     void setUp() {
         service = new PasswordResetService(userRepository, tokenRepository, passwordEncoder,
-                emailSender, messageSource, FRONTEND_URL);
+                emailSender, templates, messageSource, FRONTEND_URL);
         user = new User();
         user.setId(1L);
         user.setEmail("ivan@mail.md");
@@ -110,6 +113,9 @@ class PasswordResetServiceTest {
             assertThat(saved.getValue().getTokenHash())
                     .isEqualTo(sha256(token))
                     .isNotEqualTo(token);
+            ArgumentCaptor<Map<String, Object>> variables = ArgumentCaptor.forClass(Map.class);
+            verify(templates).render(eq("password-reset"), variables.capture());
+            assertThat(variables.getValue()).containsEntry("link", FRONTEND_URL + "/reset-password?token=" + token);
             assertThat(saved.getValue().getExpiresAt())
                     .isBetween(LocalDateTime.now().plusMinutes(29), LocalDateTime.now().plusMinutes(31));
         }
@@ -195,6 +201,7 @@ class PasswordResetServiceTest {
                 .thenReturn("Reset");
         when(messageSource.getMessage(eq("email.passwordReset.body"), any(Object[].class), any(Locale.class)))
                 .thenAnswer(call -> String.valueOf(call.getArgument(1, Object[].class)[0]));
+        when(templates.render(eq("password-reset"), any())).thenReturn("<p>html</p>");
     }
 
     private String tokenFromSentLink(String expectedPrefix) {
@@ -203,6 +210,7 @@ class PasswordResetServiceTest {
         assertThat(sent.getValue().to()).isEqualTo("ivan@mail.md");
         assertThat(sent.getValue().subject()).isEqualTo("Reset");
         assertThat(sent.getValue().text()).startsWith(expectedPrefix);
+        assertThat(sent.getValue().html()).isEqualTo("<p>html</p>");
         return sent.getValue().text().substring(expectedPrefix.length());
     }
 

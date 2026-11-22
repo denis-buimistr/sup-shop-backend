@@ -122,6 +122,9 @@ class PasswordResetIntegrationTest extends AbstractIntegrationTest {
         ArgumentCaptor<EmailMessage> sent = ArgumentCaptor.forClass(EmailMessage.class);
         verify(emailSender).send(sent.capture());
         assertThat(sent.getValue().to()).isEqualTo(email);
-        return sent.getValue().text().replaceAll("(?s).*token=([A-Za-z0-9_-]+).*", "$1");
+        String token = sent.getValue().text().replaceAll("(?s).*token=([A-Za-z0-9_-]+).*", "$1");
+        // в html та же ссылка, что и в текстовой версии
+        assertThat(sent.getValue().html()).contains("reset-password?token=" + token);
+        return token;
     }
 }

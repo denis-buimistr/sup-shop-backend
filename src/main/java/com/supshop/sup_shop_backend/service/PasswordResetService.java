@@ -7,6 +7,7 @@ import com.supshop.sup_shop_backend.repository.PasswordResetTokenRepository;
 import com.supshop.sup_shop_backend.repository.UserRepository;
 import com.supshop.sup_shop_backend.service.email.EmailMessage;
 import com.supshop.sup_shop_backend.service.email.EmailSender;
+import com.supshop.sup_shop_backend.service.email.EmailTemplateRenderer;
 import com.supshop.sup_shop_backend.util.ContentLanguage;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
@@ -24,6 +25,7 @@ import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -36,6 +38,7 @@ public class PasswordResetService {
     private final PasswordResetTokenRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailSender emailSender;
+    private final EmailTemplateRenderer templates;
     private final MessageSource messageSource;
     private final String frontendUrl;
     private final SecureRandom random = new SecureRandom();
@@ -44,12 +47,14 @@ public class PasswordResetService {
                                 PasswordResetTokenRepository tokenRepository,
                                 PasswordEncoder passwordEncoder,
                                 EmailSender emailSender,
+                                EmailTemplateRenderer templates,
                                 MessageSource messageSource,
                                 @Value("${app.frontend-url}") String frontendUrl) {
         this.userRepository = userRepository;
         this.tokenRepository = tokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailSender = emailSender;
+        this.templates = templates;
         this.messageSource = messageSource;
         this.frontendUrl = frontendUrl;
     }
@@ -94,9 +99,14 @@ public class PasswordResetService {
         String link = frontendUrl + prefix + "/reset-password?token=" + token;
 
         String subject = messageSource.getMessage("email.passwordReset.subject", null, locale);
-        String body = messageSource.getMessage("email.passwordReset.body",
+        // текст для почтовиков без html, html для всех остальных, уходят обе версии в одном письме
+        String text = messageSource.getMessage("email.passwordReset.body",
                 new Object[]{link, TOKEN_LIFETIME.toMinutes()}, locale);
-        emailSender.send(EmailMessage.plain(email, subject, body));
+        String html = templates.render("password-reset", Map.of(
+                "link", link,
+                "minutes", TOKEN_LIFETIME.toMinutes(),
+                "siteUrl", frontendUrl));
+        emailSender.send(new EmailMessage(email, subject, text, html));
     }
 
     // 32 случайных байта, это 256 бит, такой токен не подобрать перебором
