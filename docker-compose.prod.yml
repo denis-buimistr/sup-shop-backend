@@ -19,6 +19,8 @@ services:
       ADMIN_USERNAME: ${ADMIN_USERNAME:?}
       ADMIN_EMAIL: ${ADMIN_EMAIL:?}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?}
+      # куда ведут ссылки из писем, например сброс пароля
+      FRONTEND_URL: ${FRONTEND_URL:?}
     healthcheck:
       test: ["CMD", "curl", "-fs", "http://localhost:8080/actuator/health"]
       interval: 10s
